@@ -1,55 +1,50 @@
+import json
 import torch
-import torchtext
+from torchtext.vocab import Vocab
 from transformers import BertTokenizer
+from torch.utils.data import Dataset
+import itertools
+from collections import Counter
 
 
-def get_dataloaders(input_path):
-    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", do_lower_case=True)
+class TweetTransform:
+    def __init__(self, bert_model, labels):
+        self.tokenizer = BertTokenizer.from_pretrained(bert_model, do_lower_case=True).encode
+        self.label_vocab = Vocab(labels)
 
-    tweet_field = torchtext.data.Field(
-        batch_first=True, tokenize=tokenizer.encode, use_vocab=False, pad_token=0
-    )
+    def __call__(self, tweet):
+        tweet["tokens"] = self.tokenizer(tweet["tweet"])
 
-    label_field = torchtext.data.LabelField(
-        batch_first=True,
-        use_vocab=True
-    )
+        return tweet
 
-    fields = {"tweet": ("tweet", tweet_field), "label": ("label", label_field)}
 
-    train_data, val_data, test_data = torchtext.data.TabularDataset.splits(
-        path=input_path,
-        train="train.json",
-        validation="dev.json",
-        test="test.json",
-        fields=fields,
-        format="json",
-    )
+class TwitterDataset(Dataset):
+    def __init__(self, tweets, transform):
+        self.transform = transform
+        self.tweets = tweets
 
-    train_dataloader = torchtext.data.BucketIterator(
-        train_data,
-        batch_size=32,
-        shuffle=True,
-        train=True,
-        device=torch.device("cuda:0"),
-    )
+    def __len__(self):
+        return len(self.tweets)
 
-    val_dataloader = torchtext.data.BucketIterator(
-        val_data,
-        batch_size=32,
-        shuffle=True,
-        train=True,
-        device=torch.device("cuda:0")
-    )
+    def __getitem__(self, item):
+        tweet = self.transform(self.tweets[item])
+        return tweet
 
-    test_dataloader = torchtext.data.BucketIterator(
-        test_data,
-        batch_size=32,
-        shuffle=False,
-        train=False,
-        device=torch.device("cuda:0"),
-    )
 
-    label_field.build_vocab(train_data, val_data, test_data)
+def parse_json(data_paths):
+    datasets = list()
+    labels = list()
 
-    return train_dataloader, val_dataloader, test_dataloader
+    for data_path in data_paths:
+        with open(data_path, "r") as fh:
+            dataset = json.load(fh)
+            datasets.append(dataset)
+            labels += itertools.chain(*[tweet["labels"] for tweet in dataset])
+
+    return datasets, Counter(labels)
+
+
+def get_dataloaders(datasets, transform):
+    for tweets in datasets:
+        dataset = TwitterDataset(tweets, transform)
+        d = dataset[0]

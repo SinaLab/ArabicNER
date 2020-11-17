@@ -2,6 +2,7 @@
 SmokingTweetClassifier
 ======================
 
+https://discuss.pytorch.org/t/multi-label-classification-in-pytorch/905/45
 
 .. image:: https://img.shields.io/pypi/v/tweetlabeler.svg
         :target: https://pypi.python.org/pypi/tweetlabeler

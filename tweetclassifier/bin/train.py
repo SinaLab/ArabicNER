@@ -1,8 +1,7 @@
 import argparse
+from transformers import BertForSequenceClassification
 from tweetclassifier.dataset import get_dataloaders
 from tweetclassifier.trainer import Trainer
-from transformers import BertForSequenceClassification
-from transformers import BertTokenizer
 from tweetclassifier.dataset import TweetTransform, parse_json
 
 

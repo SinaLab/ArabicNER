@@ -6,6 +6,9 @@ from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import itertools
 from collections import Counter
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TweetTransform:
@@ -16,7 +19,7 @@ class TweetTransform:
         self.label_vocab = Vocab(labels, specials=[])
 
     def __call__(self, tweet):
-        tweet["encoded_seq"] = torch.Tensor(self.tokenizer(tweet["tweet"]))
+        tweet["encoded_seq"] = torch.Tensor(self.tokenizer(tweet["tweet"])).long()
         tweet["encoded_label"] = torch.zeros(len(self.label_vocab.itos))
 
         for label in tweet["labels"]:
@@ -48,7 +51,10 @@ def parse_json(data_paths):
             datasets.append(dataset)
             labels += itertools.chain(*[tweet["labels"] for tweet in dataset])
 
-    return datasets, Counter(labels)
+    labels = Counter(labels)
+    logger.info(labels)
+
+    return datasets, labels
 
 
 def get_dataloaders(
@@ -64,7 +70,7 @@ def get_dataloaders(
             shuffle=shuffle[i],
             batch_size=batch_size,
             num_workers=num_workers,
-            collate_fn=batch_collate_fn
+            collate_fn=batch_collate_fn,
         )
 
         dataloaders.append(dataloader)
@@ -75,4 +81,4 @@ def get_dataloaders(
 def batch_collate_fn(batch):
     tweets, labels = zip(*batch)
     tweets = pad_sequence(tweets, batch_first=True, padding_value=0)
-    return tweets, labels
+    return tweets, torch.stack(labels)

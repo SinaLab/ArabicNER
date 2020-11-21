@@ -1,5 +1,6 @@
 import logging
 import torch
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ class Trainer:
         train_dataloader=None,
         val_dataloader=None,
         test_dataloader=None,
+        log_interval=10,
     ):
         self.model = model
         self.max_epochs = max_epochs
@@ -24,18 +26,53 @@ class Trainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.loss = loss
+        self.log_interval = log_interval
 
     def train(self):
-        for i in range(self.max_epochs):
+        current_timestep = 0
+        best_val_loss, test_loss = np.inf, np.inf
+        num_train_batch = len(self.train_dataloader)
+
+        for epoch_index in range(self.max_epochs):
             for tweets, gold_labels, pred_labels in self.classify(
                 self.train_dataloader
             ):
-                loss = self.loss(gold_labels, pred_labels)
-                loss.backward()
+                current_timestep += 1
+                train_loss = self.loss(pred_labels, gold_labels)
+                train_loss.backward()
                 self.optimizer.step()
-                logger.info(loss.item())
+
+                if current_timestep % self.log_interval == 0:
+                    train_loss /= num_train_batch
+                    logger.info(
+                        "Epoch %d | Timestep %d | Train Loss %f | Val Loss %f | Test Loss %f",
+                        epoch_index,
+                        current_timestep,
+                        train_loss,
+                        best_val_loss,
+                        test_loss,
+                    )
+
+            val_loss = self.eval(self.val_dataloader)
+            logger.info(
+                "Epoch %d | Timestep %d | Val Loss %f",
+                epoch_index,
+                current_timestep,
+                val_loss,
+            )
 
             self.scheduler.step()
+
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                logger.info("Validation improved, evaluating test data...")
+                test_loss = self.eval(self.test_dataloader)
+                logger.info(
+                    "Epoch %d | Timestep %d | Test Loss %f",
+                    epoch_index,
+                    current_timestep,
+                    test_loss,
+                )
 
     def classify(self, dataloader, is_train=True):
         for tweets, gold_labels in dataloader:
@@ -52,4 +89,12 @@ class Trainer:
                 with torch.no_grad():
                     pred_labels = self.model(tweets)
 
-            yield tweets, gold_labels, pred_labels[0]
+            yield tweets, gold_labels, pred_labels
+
+    def eval(self, dataloader):
+        for tweets, gold_labels, pred_labels in self.classify(
+            dataloader, is_train=False
+        ):
+            loss = self.loss(pred_labels, gold_labels)
+
+        return loss / len(dataloader)

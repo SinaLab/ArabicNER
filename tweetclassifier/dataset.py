@@ -50,9 +50,10 @@ def parse_json(data_paths):
             dataset = json.load(fh)
             datasets.append(dataset)
             labels += itertools.chain(*[tweet["labels"] for tweet in dataset])
+            logger.info("%d tweets found in %s", len(dataset), data_path)
 
     labels = Counter(labels)
-    logger.info(labels)
+    logger.info("Labels %s", labels)
 
     return datasets, labels
 
@@ -73,6 +74,7 @@ def get_dataloaders(
             collate_fn=batch_collate_fn,
         )
 
+        logger.info("%s batches found", len(dataloader))
         dataloaders.append(dataloader)
 
     return dataloaders

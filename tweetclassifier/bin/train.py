@@ -7,6 +7,7 @@ from tweetclassifier.dataset import get_dataloaders
 from tweetclassifier.trainer import Trainer
 from tweetclassifier.dataset import TweetTransform, parse_json
 from tweetclassifier.utils import logging_config, load_object
+from tweetclassifier.BertTweetClassifer import BertTweetClassifer
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,20 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--log_interval",
+        type=int,
+        default=10,
+        help="Log results every that many timesteps",
+    )
+
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=32,
+        help="Batch size",
+    )
+
+    parser.add_argument(
         "--optimizer",
         type=json.loads,
         default='{"fn": "torch.optim.Adam", "kwargs": {"lr": 0.001}}',
@@ -82,15 +97,16 @@ def main(args):
     datasets, labels = parse_json((args.train_path, args.val_path, args.test_path))
     transform = TweetTransform(args.bert_model, labels)
     train_dataloader, val_dataloader, test_dataloader = get_dataloaders(
-        datasets, transform
+        datasets, transform, batch_size=args.batch_size
     )
 
-    model = BertForSequenceClassification.from_pretrained(
-        args.bert_model,
-        num_labels=len(labels),
-        output_attentions=False,
-        output_hidden_states=False,
-    )
+    model = BertTweetClassifer(args.bert_model, num_labels=len(labels))
+    #model = BertForSequenceClassification.from_pretrained(
+    #    args.bert_model,
+    #    num_labels=len(labels),
+    #    output_attentions=False,
+    #    output_hidden_states=False,
+    #)
 
     if torch.cuda.is_available():
         model = model.cuda()
@@ -112,6 +128,7 @@ def main(args):
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader,
         test_dataloader=test_dataloader,
+        log_interval=args.log_interval
     )
     trainer.train()
     return

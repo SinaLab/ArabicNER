@@ -34,34 +34,39 @@ class Trainer:
         num_train_batch = len(self.train_dataloader)
 
         for epoch_index in range(self.max_epochs):
-            for tweets, gold_labels, pred_labels in self.classify(
-                self.train_dataloader
+            for tweets, gold_labels, logits in self.classify(
+                self.train_dataloader, is_train=True
             ):
                 current_timestep += 1
-                train_loss = self.loss(pred_labels, gold_labels)
-                train_loss.backward()
-                self.optimizer.step()
+                train_loss = self.loss(logits, gold_labels)
+
+                _, pred = torch.max(logits, dim=1)
 
                 if current_timestep % self.log_interval == 0:
                     train_loss /= num_train_batch
                     logger.info(
-                        "Epoch %d | Timestep %d | Train Loss %f | Val Loss %f | Test Loss %f",
+                        "Epoch %d | Timestep %d | LR %f | Train Loss %f | Val Loss %f | Test Loss %f",
                         epoch_index,
                         current_timestep,
+                        self.optimizer.param_groups[0]['lr'],
                         train_loss,
                         best_val_loss,
                         test_loss,
                     )
 
+                train_loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+                self.optimizer.step()
+                self.scheduler.step()
+
             val_loss = self.eval(self.val_dataloader)
+
             logger.info(
                 "Epoch %d | Timestep %d | Val Loss %f",
                 epoch_index,
                 current_timestep,
                 val_loss,
             )
-
-            self.scheduler.step()
 
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
@@ -84,17 +89,17 @@ class Trainer:
 
             if is_train:
                 self.optimizer.zero_grad()
-                pred_labels = self.model(tweets)
+                logits = self.model(tweets)
             else:
                 with torch.no_grad():
-                    pred_labels = self.model(tweets)
+                    logits = self.model(tweets)
 
-            yield tweets, gold_labels, pred_labels
+            yield tweets, gold_labels, logits
 
     def eval(self, dataloader):
-        for tweets, gold_labels, pred_labels in self.classify(
+        for tweets, gold_labels, logits in self.classify(
             dataloader, is_train=False
         ):
-            loss = self.loss(pred_labels, gold_labels)
+            loss = self.loss(logits, gold_labels)
 
         return loss / len(dataloader)

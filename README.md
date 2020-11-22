@@ -14,9 +14,6 @@ https://discuss.pytorch.org/t/multi-label-classification-in-pytorch/905/45
         :target: https://tweetlabeler.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-
-
-
 Python Boilerplate contains all the boilerplate you need to create a Python package.
 
 

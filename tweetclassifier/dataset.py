@@ -20,11 +20,7 @@ class TweetTransform:
 
     def __call__(self, tweet):
         tweet["encoded_seq"] = torch.Tensor(self.tokenizer(tweet["tweet"])).long()
-        tweet["encoded_label"] = torch.zeros(len(self.label_vocab.itos))
-
-        for label in tweet["labels"]:
-            tweet["encoded_label"][self.label_vocab.stoi[label]] = 1
-
+        tweet["encoded_label"] = self.label_vocab.stoi[tweet["labels"][0]]
         return tweet
 
 
@@ -83,4 +79,4 @@ def get_dataloaders(
 def batch_collate_fn(batch):
     tweets, labels = zip(*batch)
     tweets = pad_sequence(tweets, batch_first=True, padding_value=0)
-    return tweets, torch.stack(labels)
+    return tweets, torch.Tensor(labels).long()

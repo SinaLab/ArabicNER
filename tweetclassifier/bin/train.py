@@ -69,14 +69,14 @@ def parse_args():
     parser.add_argument(
         "--optimizer",
         type=json.loads,
-        default='{"fn": "torch.optim.Adam", "kwargs": {"lr": 0.001}}',
+        default='{"fn": "torch.optim.Adam", "kwargs": {"lr": 0.0001}}',
         help="Optimizer configurations",
     )
 
     parser.add_argument(
         "--lr_scheduler",
         type=json.loads,
-        default='{"fn": "torch.optim.lr_scheduler.ExponentialLR", "kwargs": {"gamma": 0.9}}',
+        default='{"fn": "torch.optim.lr_scheduler.ExponentialLR", "kwargs": {"gamma": 1}}',
         help="Learning rate scheduler configurations",
     )
 
@@ -100,13 +100,9 @@ def main(args):
         datasets, transform, batch_size=args.batch_size
     )
 
-    model = BertTweetClassifer(args.bert_model, num_labels=len(labels))
-    #model = BertForSequenceClassification.from_pretrained(
-    #    args.bert_model,
-    #    num_labels=len(labels),
-    #    output_attentions=False,
-    #    output_hidden_states=False,
-    #)
+    model = BertTweetClassifer(args.bert_model,
+                               num_labels=len(labels),
+                               dropout=0.1)
 
     if torch.cuda.is_available():
         model = model.cuda()
@@ -115,8 +111,10 @@ def main(args):
     optimizer = load_object(args.optimizer["fn"], args.optimizer["kwargs"])
 
     args.lr_scheduler["kwargs"]["optimizer"] = optimizer
-    scheduler = load_object(args.lr_scheduler["fn"], args.lr_scheduler["kwargs"])
+    if "num_training_steps" in args.lr_scheduler["kwargs"]:
+        args.lr_scheduler["kwargs"]["num_training_steps"] = args.max_epochs * len(train_dataloader)
 
+    scheduler = load_object(args.lr_scheduler["fn"], args.lr_scheduler["kwargs"])
     loss = load_object(args.loss["fn"], args.loss["kwargs"])
 
     trainer = Trainer(

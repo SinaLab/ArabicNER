@@ -1,6 +1,5 @@
 import torch.nn as nn
 from transformers import BertModel
-import torch.nn.functional as F
 
 
 class BertTweetClassifer(nn.Module):

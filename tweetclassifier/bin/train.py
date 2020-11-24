@@ -2,7 +2,6 @@ import logging
 import json
 import torch
 import argparse
-from transformers import BertForSequenceClassification
 from tweetclassifier.dataset import get_dataloaders
 from tweetclassifier.trainer import Trainer
 from tweetclassifier.dataset import TweetTransform, parse_json

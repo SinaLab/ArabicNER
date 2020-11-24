@@ -1,6 +1,7 @@
 import logging
 import torch
 import numpy as np
+from tweetclassifier.metrics import compute_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -59,24 +60,36 @@ class Trainer:
                 self.optimizer.step()
                 self.scheduler.step()
 
-            val_loss = self.eval(self.val_dataloader)
+            val_loss, val_golds, val_preds = self.eval(self.val_dataloader)
+            val_metrics = compute_metrics(val_golds.detach().cpu().numpy(), val_preds.detach().cpu().numpy())
 
+            logger.info("Evaluating on validation dataset")
             logger.info(
-                "Epoch %d | Timestep %d | Val Loss %f",
+                "Epoch %d | Timestep %d | Val Loss %f | F1 %f | Pr %f | Re %f | Acc %f",
                 epoch_index,
                 current_timestep,
                 val_loss,
+                val_metrics.f1,
+                val_metrics.precision,
+                val_metrics.recall,
+                val_metrics.accuracy
             )
 
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 logger.info("Validation improved, evaluating test data...")
-                test_loss = self.eval(self.test_dataloader)
+                test_loss, test_golds, test_preds = self.eval(self.test_dataloader)
+                test_metrics = compute_metrics(test_golds.detach().cpu().numpy(), test_preds.detach().cpu().numpy())
+
                 logger.info(
-                    "Epoch %d | Timestep %d | Test Loss %f",
+                    "Epoch %d | Timestep %d | Test Loss %f | F1 %f | Pr %f | Re %f | Acc %f",
                     epoch_index,
                     current_timestep,
                     test_loss,
+                    test_metrics.f1,
+                    test_metrics.precision,
+                    test_metrics.recall,
+                    test_metrics.accuracy
                 )
 
     def classify(self, dataloader, is_train=True):
@@ -97,9 +110,17 @@ class Trainer:
             yield tweets, gold_labels, logits
 
     def eval(self, dataloader):
+        golds = list()
+        preds = list()
+
         for tweets, gold_labels, logits in self.classify(
             dataloader, is_train=False
         ):
             loss = self.loss(logits, gold_labels)
+            golds.append(gold_labels)
+            preds.append(logits)
 
-        return loss / len(dataloader)
+        golds = torch.cat(golds, dim=0)
+        preds = torch.argmax(torch.cat(preds, dim=0), dim=1)
+
+        return loss / len(dataloader), golds, preds

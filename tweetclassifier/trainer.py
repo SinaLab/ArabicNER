@@ -40,6 +40,10 @@ class Trainer:
             ):
                 current_timestep += 1
                 train_loss = self.loss(logits, gold_labels)
+                train_loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+                self.optimizer.step()
+                self.scheduler.step()
 
                 _, pred = torch.max(logits, dim=1)
 
@@ -54,11 +58,6 @@ class Trainer:
                         best_val_loss,
                         test_loss,
                     )
-
-                train_loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
-                self.optimizer.step()
-                self.scheduler.step()
 
             val_loss, val_golds, val_preds = self.eval(self.val_dataloader)
             val_metrics = compute_metrics(val_golds.detach().cpu().numpy(), val_preds.detach().cpu().numpy())

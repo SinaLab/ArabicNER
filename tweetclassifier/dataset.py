@@ -12,14 +12,16 @@ logger = logging.getLogger(__name__)
 
 
 class TweetTransform:
-    def __init__(self, bert_model, labels):
+    def __init__(self, bert_model, labels, max_seq_len=512):
         self.tokenizer = BertTokenizer.from_pretrained(
             bert_model, do_lower_case=True
         ).encode
         self.label_vocab = Vocab(labels, specials=[])
+        self.max_seq_len = max_seq_len
 
     def __call__(self, tweet):
         tweet["encoded_seq"] = torch.Tensor(self.tokenizer(tweet["tweet"])).long()
+        tweet["encoded_seq"] = tweet["encoded_seq"][:self.max_seq_len]
         tweet["encoded_label"] = self.label_vocab.stoi[tweet["labels"][0]]
         return tweet
 

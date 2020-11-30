@@ -18,6 +18,7 @@ class Trainer:
         val_dataloader=None,
         test_dataloader=None,
         log_interval=10,
+        summary_writer=None
     ):
         self.model = model
         self.max_epochs = max_epochs
@@ -28,6 +29,7 @@ class Trainer:
         self.scheduler = scheduler
         self.loss = loss
         self.log_interval = log_interval
+        self.summary_writer = summary_writer
 
     def train(self):
         current_timestep = 0
@@ -35,38 +37,48 @@ class Trainer:
         num_train_batch = len(self.train_dataloader)
 
         for epoch_index in range(self.max_epochs):
-            for tweets, gold_labels, logits in self.classify(
+            train_loss = 0
+
+            for batch_index, (tweets, gold_labels, logits) in enumerate(self.classify(
                 self.train_dataloader, is_train=True
-            ):
+            ), 1):
                 current_timestep += 1
-                train_loss = self.loss(logits, gold_labels)
-                train_loss.backward()
+                loss = self.loss(logits, gold_labels)
+                loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
                 self.optimizer.step()
                 self.scheduler.step()
-
-                _, pred = torch.max(logits, dim=1)
+                train_loss += loss.item()
 
                 if current_timestep % self.log_interval == 0:
-                    train_loss /= num_train_batch
                     logger.info(
-                        "Epoch %d | Timestep %d | LR %f | Train Loss %f | Val Loss %f | Test Loss %f",
+                        "Epoch %d | Batch %d/%d | Timestep %d | LR %f",
                         epoch_index,
+                        batch_index,
+                        num_train_batch,
                         current_timestep,
                         self.optimizer.param_groups[0]['lr'],
-                        train_loss,
-                        best_val_loss,
-                        test_loss,
                     )
 
+            train_loss /= num_train_batch
             val_loss, val_golds, val_preds = self.eval(self.val_dataloader)
             val_metrics = compute_metrics(val_golds.detach().cpu().numpy(), val_preds.detach().cpu().numpy())
 
+            epoch_summary = {
+                "train_loss": train_loss,
+                "val_loss": val_loss,
+                "val_f1": val_metrics.f1,
+                "val_precision": val_metrics.precision,
+                "val_recall": val_metrics.recall,
+                "val_accuracy": val_metrics.accuracy
+            }
+
             logger.info("Evaluating on validation dataset")
             logger.info(
-                "Epoch %d | Timestep %d | Val Loss %f | F1 %f | Pr %f | Re %f | Acc %f",
+                "Epoch %d | Timestep %d | Train Loss %f | Val Loss %f | F1 %f | Pr %f | Re %f | Acc %f",
                 epoch_index,
                 current_timestep,
+                train_loss,
                 val_loss,
                 val_metrics.f1,
                 val_metrics.precision,
@@ -79,6 +91,11 @@ class Trainer:
                 logger.info("Validation improved, evaluating test data...")
                 test_loss, test_golds, test_preds = self.eval(self.test_dataloader)
                 test_metrics = compute_metrics(test_golds.detach().cpu().numpy(), test_preds.detach().cpu().numpy())
+                epoch_summary["test_loss"] = test_loss
+                epoch_summary["test_f1"] = test_metrics.f1
+                epoch_summary["test_precision"] = test_metrics.precision
+                epoch_summary["test_recall"] = test_metrics.recall
+                epoch_summary["test_accuracy"] = test_metrics.accuracy
 
                 logger.info(
                     "Epoch %d | Timestep %d | Test Loss %f | F1 %f | Pr %f | Re %f | Acc %f",
@@ -90,6 +107,8 @@ class Trainer:
                     test_metrics.recall,
                     test_metrics.accuracy
                 )
+
+            self.summary_writer.add_scalars("Loss", epoch_summary, global_step=current_timestep)
 
     def classify(self, dataloader, is_train=True):
         for tweets, gold_labels in dataloader:
@@ -122,4 +141,4 @@ class Trainer:
         golds = torch.cat(golds, dim=0)
         preds = torch.argmax(torch.cat(preds, dim=0), dim=1)
 
-        return loss / len(dataloader), golds, preds
+        return loss.item() / len(dataloader), golds, preds

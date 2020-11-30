@@ -1,6 +1,8 @@
+import os
 import sys
 import logging
 import importlib
+import shutil
 
 
 def logging_config(log_file=None):
@@ -23,3 +25,13 @@ def load_object(name, kwargs):
     object_module = importlib.import_module(object_module)
     fn = getattr(object_module, object_name)(**kwargs)
     return fn
+
+
+def make_output_dirs(path, subdirs=[], overwrite=True):
+    if overwrite:
+        shutil.rmtree(path, ignore_errors=True)
+
+    os.makedirs(path)
+
+    for subdir in subdirs:
+        os.makedirs(os.path.join(path, subdir))

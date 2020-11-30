@@ -1,11 +1,13 @@
+import os
 import logging
 import json
 import torch
 import argparse
+import torch.utils.tensorboard
 from tweetclassifier.dataset import get_dataloaders
 from tweetclassifier.trainer import Trainer
 from tweetclassifier.dataset import TweetTransform, parse_json
-from tweetclassifier.utils import logging_config, load_object
+from tweetclassifier.utils import logging_config, load_object, make_output_dirs
 from tweetclassifier.BertTweetClassifer import BertTweetClassifer
 
 logger = logging.getLogger(__name__)
@@ -14,6 +16,13 @@ logger = logging.getLogger(__name__)
 def parse_args():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    parser.add_argument(
+        "--output_path",
+        type=str,
+        required=True,
+        help="Output path",
     )
 
     parser.add_argument(
@@ -86,15 +95,31 @@ def parse_args():
         help="Loss function configurations",
     )
 
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite output directory",
+    )
+
+    parser.add_argument(
+        "--max_seq_len",
+        type=int,
+        default=512,
+        help="Maximum sequence length",
+    )
+
     args = parser.parse_args()
 
     return args
 
 
 def main(args):
-    logging_config()
+    make_output_dirs(args.output_path, subdirs=["tensorboard"], overwrite=args.overwrite)
+    logging_config(os.path.join(args.output_path, "train.log"))
+    summary_writer = torch.utils.tensorboard.SummaryWriter(os.path.join(args.output_path, "tensorboard"))
+
     datasets, labels = parse_json((args.train_path, args.val_path, args.test_path))
-    transform = TweetTransform(args.bert_model, labels)
+    transform = TweetTransform(args.bert_model, labels, max_seq_len=args.max_seq_len)
     train_dataloader, val_dataloader, test_dataloader = get_dataloaders(
         datasets, transform, batch_size=args.batch_size
     )
@@ -125,7 +150,8 @@ def main(args):
         train_dataloader=train_dataloader,
         val_dataloader=val_dataloader,
         test_dataloader=test_dataloader,
-        log_interval=args.log_interval
+        log_interval=args.log_interval,
+        summary_writer=summary_writer
     )
     trainer.train()
     return

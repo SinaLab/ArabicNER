@@ -117,6 +117,11 @@ def main(args):
     make_output_dirs(args.output_path, subdirs=["tensorboard"], overwrite=args.overwrite)
     logging_config(os.path.join(args.output_path, "train.log"))
     summary_writer = torch.utils.tensorboard.SummaryWriter(os.path.join(args.output_path, "tensorboard"))
+    args_file = os.path.join(args.output_path, "args.json")
+
+    with open(args_file, "w") as fh:
+        logger.info("Writing config to %s", args_file)
+        json.dump(args.__dict__, fh, indent=4)
 
     datasets, labels = parse_json((args.train_path, args.val_path, args.test_path))
     transform = TweetTransform(args.bert_model, labels, max_seq_len=args.max_seq_len)

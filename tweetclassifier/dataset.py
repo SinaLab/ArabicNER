@@ -6,38 +6,46 @@ from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import itertools
 from collections import Counter
+from functools import partial
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-class TweetTransform:
-    def __init__(self, bert_model, labels, max_seq_len=512):
-        self.tokenizer = BertTokenizer.from_pretrained(bert_model, do_lower_case=True)
-        self.label_vocab = Vocab(labels, specials=[])
-        self.max_seq_len = max_seq_len
+class TextTransform:
+    def __init__(self, bert_model, max_seq_len=512):
+        self.tokenizer = partial(
+            BertTokenizer.from_pretrained(bert_model, do_lower_case=True).encode,
+            max_length=max_seq_len,
+            truncation=True,
+        )
 
-    def __call__(self, tweet):
-        tweet["encoded_seq"] = torch.Tensor(
-            self.tokenizer.encode(
-                tweet["tweet"], max_length=self.max_seq_len, truncation=True
-            )
-        ).long()
-        tweet["encoded_label"] = self.label_vocab.stoi[tweet["labels"][0]]
-        return tweet
+    def __call__(self, example):
+        example["encoded_seq"] = torch.Tensor(self.tokenizer(example["tweet"])).long()
+        return example
+
+
+class LabelTransform:
+    def __init__(self, labels, multi_label=False):
+        self.label_vocab = Vocab(labels, specials=[])
+        self.multi_label = multi_label
+
+    def __call__(self, example):
+        example["encoded_label"] = self.label_vocab.stoi[example["labels"][0]]
+        return example
 
 
 class TwitterDataset(Dataset):
-    def __init__(self, tweets, transform):
+    def __init__(self, examples, transform):
         self.transform = transform
-        self.tweets = tweets
+        self.examples = examples
 
     def __len__(self):
-        return len(self.tweets)
+        return len(self.examples)
 
     def __getitem__(self, item):
-        tweet = self.transform(self.tweets[item])
-        return tweet["encoded_seq"], tweet["encoded_label"]
+        example = self.transform(self.examples[item])
+        return example["encoded_seq"], example["encoded_label"]
 
 
 def parse_json(data_paths):
@@ -49,7 +57,7 @@ def parse_json(data_paths):
             dataset = json.load(fh)
             datasets.append(dataset)
             labels += itertools.chain(*[tweet["labels"] for tweet in dataset])
-            logger.info("%d tweets found in %s", len(dataset), data_path)
+            logger.info("%d examples found in %s", len(dataset), data_path)
 
     labels = Counter(labels)
     logger.info("Labels %s", labels)

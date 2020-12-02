@@ -4,9 +4,10 @@ import json
 import torch
 import argparse
 import torch.utils.tensorboard
+from torchvision import transforms
 from tweetclassifier.dataset import get_dataloaders
 from tweetclassifier.trainer import Trainer
-from tweetclassifier.dataset import TweetTransform, parse_json
+from tweetclassifier.dataset import TextTransform, LabelTransform, parse_json
 from tweetclassifier.utils import logging_config, load_object, make_output_dirs
 from tweetclassifier.BertTweetClassifer import BertTweetClassifer
 
@@ -114,9 +115,13 @@ def parse_args():
 
 
 def main(args):
-    make_output_dirs(args.output_path, subdirs=["tensorboard"], overwrite=args.overwrite)
+    make_output_dirs(
+        args.output_path, subdirs=["tensorboard"], overwrite=args.overwrite
+    )
     logging_config(os.path.join(args.output_path, "train.log"))
-    summary_writer = torch.utils.tensorboard.SummaryWriter(os.path.join(args.output_path, "tensorboard"))
+    summary_writer = torch.utils.tensorboard.SummaryWriter(
+        os.path.join(args.output_path, "tensorboard")
+    )
     args_file = os.path.join(args.output_path, "args.json")
 
     with open(args_file, "w") as fh:
@@ -124,14 +129,17 @@ def main(args):
         json.dump(args.__dict__, fh, indent=4)
 
     datasets, labels = parse_json((args.train_path, args.val_path, args.test_path))
-    transform = TweetTransform(args.bert_model, labels, max_seq_len=args.max_seq_len)
+    transform = transforms.Compose(
+        [
+            TextTransform(args.bert_model, max_seq_len=args.max_seq_len),
+            LabelTransform(labels),
+        ]
+    )
     train_dataloader, val_dataloader, test_dataloader = get_dataloaders(
         datasets, transform, batch_size=args.batch_size
     )
 
-    model = BertTweetClassifer(args.bert_model,
-                               num_labels=len(labels),
-                               dropout=0.1)
+    model = BertTweetClassifer(args.bert_model, num_labels=len(labels), dropout=0.1)
 
     if torch.cuda.is_available():
         model = model.cuda()
@@ -141,7 +149,9 @@ def main(args):
 
     args.lr_scheduler["kwargs"]["optimizer"] = optimizer
     if "num_training_steps" in args.lr_scheduler["kwargs"]:
-        args.lr_scheduler["kwargs"]["num_training_steps"] = args.max_epochs * len(train_dataloader)
+        args.lr_scheduler["kwargs"]["num_training_steps"] = args.max_epochs * len(
+            train_dataloader
+        )
 
     scheduler = load_object(args.lr_scheduler["fn"], args.lr_scheduler["kwargs"])
     loss = load_object(args.loss["fn"], args.loss["kwargs"])
@@ -156,7 +166,7 @@ def main(args):
         val_dataloader=val_dataloader,
         test_dataloader=test_dataloader,
         log_interval=args.log_interval,
-        summary_writer=summary_writer
+        summary_writer=summary_writer,
     )
     trainer.train()
     return

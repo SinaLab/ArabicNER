@@ -1,3 +1,4 @@
+import os
 import logging
 import torch
 import numpy as np
@@ -18,7 +19,8 @@ class Trainer:
         val_dataloader=None,
         test_dataloader=None,
         log_interval=10,
-        summary_writer=None
+        summary_writer=None,
+        output_path=None
     ):
         self.model = model
         self.max_epochs = max_epochs
@@ -30,19 +32,22 @@ class Trainer:
         self.loss = loss
         self.log_interval = log_interval
         self.summary_writer = summary_writer
+        self.output_path = output_path
+        self.current_timestep = 0
+        self.current_epoch = 0
 
     def train(self):
-        current_timestep = 0
         best_val_loss, test_loss = np.inf, np.inf
         num_train_batch = len(self.train_dataloader)
 
         for epoch_index in range(self.max_epochs):
+            self.current_epoch = epoch_index
             train_loss = 0
 
             for batch_index, (tweets, gold_labels, logits) in enumerate(self.classify(
                 self.train_dataloader, is_train=True
             ), 1):
-                current_timestep += 1
+                self.current_timestep += 1
                 loss = self.loss(logits, gold_labels)
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
@@ -50,13 +55,13 @@ class Trainer:
                 self.scheduler.step()
                 train_loss += loss.item()
 
-                if current_timestep % self.log_interval == 0:
+                if self.current_timestep % self.log_interval == 0:
                     logger.info(
                         "Epoch %d | Batch %d/%d | Timestep %d | LR %f",
                         epoch_index,
                         batch_index,
                         num_train_batch,
-                        current_timestep,
+                        self.current_timestep,
                         self.optimizer.param_groups[0]['lr'],
                     )
 
@@ -77,7 +82,7 @@ class Trainer:
             logger.info(
                 "Epoch %d | Timestep %d | Train Loss %f | Val Loss %f | F1 %f | Pr %f | Re %f | Acc %f",
                 epoch_index,
-                current_timestep,
+                self.current_timestep,
                 train_loss,
                 val_loss,
                 val_metrics.f1,
@@ -100,7 +105,7 @@ class Trainer:
                 logger.info(
                     "Epoch %d | Timestep %d | Test Loss %f | F1 %f | Pr %f | Re %f | Acc %f",
                     epoch_index,
-                    current_timestep,
+                    self.current_timestep,
                     test_loss,
                     test_metrics.f1,
                     test_metrics.precision,
@@ -108,7 +113,9 @@ class Trainer:
                     test_metrics.accuracy
                 )
 
-            self.summary_writer.add_scalars("Loss", epoch_summary, global_step=current_timestep)
+                self.save()
+
+            self.summary_writer.add_scalars("Loss", epoch_summary, global_step=self.current_timestep)
 
     def classify(self, dataloader, is_train=True):
         for tweets, gold_labels in dataloader:
@@ -142,3 +149,19 @@ class Trainer:
         preds = torch.argmax(torch.cat(preds, dim=0), dim=1)
 
         return loss.item() / len(dataloader), golds, preds
+
+    def save(self):
+        filename = os.path.join(
+            self.output_path,
+            "checkpoints",
+            "checkpoint_{}.pt".format(self.current_epoch),
+        )
+
+        checkpoint = {
+            "model": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+            "epoch": self.current_epoch
+        }
+
+        logger.info("Saving checkpoint to %s", filename)
+        torch.save(checkpoint, filename)

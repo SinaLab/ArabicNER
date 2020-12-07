@@ -116,7 +116,9 @@ def parse_args():
 
 def main(args):
     make_output_dirs(
-        args.output_path, subdirs=["tensorboard"], overwrite=args.overwrite
+        args.output_path,
+        subdirs=("tensorboard", "checkpoints"),
+        overwrite=args.overwrite,
     )
     logging_config(os.path.join(args.output_path, "train.log"))
     summary_writer = torch.utils.tensorboard.SummaryWriter(
@@ -167,6 +169,7 @@ def main(args):
         test_dataloader=test_dataloader,
         log_interval=args.log_interval,
         summary_writer=summary_writer,
+        output_path=args.output_path
     )
     trainer.train()
     return

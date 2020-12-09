@@ -7,12 +7,34 @@ from torch.nn.utils.rnn import pad_sequence
 import itertools
 from collections import Counter
 from functools import partial
+from nltk.corpus import stopwords
+from nltk import word_tokenize
+from nltk.stem import WordNetLemmatizer
+import string
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
 
 class TextTransform:
+    def __init__(self):
+        self.lemmatizer = WordNetLemmatizer()
+        self.exclude = re.compile("[{}]+$".format(re.escape(string.punctuation)))
+
+    def __call__(self, example):
+        tokens = word_tokenize(example["text"])
+
+        tokens = [
+            self.lemmatizer.lemmatize(token.lower(), pos="v")
+            for token in tokens
+            if token not in stopwords.words() and not self.exclude.match(token)
+        ]
+        example["tokens"] = tokens
+        return example
+
+
+class BertSeqTransform:
     def __init__(self, bert_model, max_seq_len=512):
         self.tokenizer = partial(
             BertTokenizer.from_pretrained(bert_model, do_lower_case=True).encode,
@@ -21,7 +43,7 @@ class TextTransform:
         )
 
     def __call__(self, example):
-        example["encoded_seq"] = torch.Tensor(self.tokenizer(example["tweet"])).long()
+        example["encoded_seq"] = torch.Tensor(self.tokenizer(example["text"])).long()
         return example
 
 
@@ -35,7 +57,7 @@ class LabelTransform:
         return example
 
 
-class TwitterDataset(Dataset):
+class DefaultDataset(Dataset):
     def __init__(self, examples, transform):
         self.transform = transform
         self.examples = examples
@@ -70,8 +92,8 @@ def get_dataloaders(
 ):
     dataloaders = list()
 
-    for i, tweets in enumerate(datasets):
-        dataset = TwitterDataset(tweets, transform)
+    for i, examples in enumerate(datasets):
+        dataset = DefaultDataset(examples, transform)
 
         dataloader = DataLoader(
             dataset=dataset,
@@ -88,6 +110,6 @@ def get_dataloaders(
 
 
 def batch_collate_fn(batch):
-    tweets, labels = zip(*batch)
-    tweets = pad_sequence(tweets, batch_first=True, padding_value=0)
-    return tweets, torch.Tensor(labels).long()
+    text, labels = zip(*batch)
+    text = pad_sequence(text, batch_first=True, padding_value=0)
+    return text, torch.Tensor(labels).long()

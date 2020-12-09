@@ -2,7 +2,7 @@ import torch.nn as nn
 from transformers import BertModel
 
 
-class BertTweetClassifer(nn.Module):
+class BertClassifer(nn.Module):
     def __init__(self, bert_model, num_labels=2, dropout=0.1):
         super().__init__()
 

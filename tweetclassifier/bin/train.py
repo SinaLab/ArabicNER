@@ -7,9 +7,9 @@ import torch.utils.tensorboard
 from torchvision import transforms
 from tweetclassifier.dataset import get_dataloaders
 from tweetclassifier.trainer import Trainer
-from tweetclassifier.dataset import TextTransform, LabelTransform, parse_json
+from tweetclassifier.dataset import BertSeqTransform, LabelTransform, parse_json
 from tweetclassifier.utils import logging_config, load_object, make_output_dirs
-from tweetclassifier.BertTweetClassifer import BertTweetClassifer
+from tweetclassifier.BertClassifer import BertClassifer
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ def main(args):
     datasets, labels = parse_json((args.train_path, args.val_path, args.test_path))
     transform = transforms.Compose(
         [
-            TextTransform(args.bert_model, max_seq_len=args.max_seq_len),
+            BertSeqTransform(args.bert_model, max_seq_len=args.max_seq_len),
             LabelTransform(labels),
         ]
     )
@@ -141,7 +141,7 @@ def main(args):
         datasets, transform, batch_size=args.batch_size
     )
 
-    model = BertTweetClassifer(args.bert_model, num_labels=len(labels), dropout=0.1)
+    model = BertClassifer(args.bert_model, num_labels=len(labels), dropout=0.1)
 
     if torch.cuda.is_available():
         model = model.cuda()

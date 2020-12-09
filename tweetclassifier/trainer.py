@@ -44,7 +44,7 @@ class Trainer:
             self.current_epoch = epoch_index
             train_loss = 0
 
-            for batch_index, (tweets, gold_labels, logits) in enumerate(self.classify(
+            for batch_index, (_, gold_labels, logits) in enumerate(self.classify(
                 self.train_dataloader, is_train=True
             ), 1):
                 self.current_timestep += 1
@@ -118,27 +118,27 @@ class Trainer:
             self.summary_writer.add_scalars("Loss", epoch_summary, global_step=self.current_timestep)
 
     def classify(self, dataloader, is_train=True):
-        for tweets, gold_labels in dataloader:
+        for text, gold_labels in dataloader:
             self.model.train(is_train)
 
             if torch.cuda.is_available():
-                tweets = tweets.cuda()
+                text = text.cuda()
                 gold_labels = gold_labels.cuda()
 
             if is_train:
                 self.optimizer.zero_grad()
-                logits = self.model(tweets)
+                logits = self.model(text)
             else:
                 with torch.no_grad():
-                    logits = self.model(tweets)
+                    logits = self.model(text)
 
-            yield tweets, gold_labels, logits
+            yield text, gold_labels, logits
 
     def eval(self, dataloader):
         golds = list()
         preds = list()
 
-        for tweets, gold_labels, logits in self.classify(
+        for _, gold_labels, logits in self.classify(
             dataloader, is_train=False
         ):
             loss = self.loss(logits, gold_labels)

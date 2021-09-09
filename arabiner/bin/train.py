@@ -1,15 +1,13 @@
-import os
 import logging
 import json
-import torch
 import argparse
 import torch.utils.tensorboard
-from torchvision import transforms
-from tweetclassifier.dataset import get_dataloaders
-from tweetclassifier.trainer import Trainer
-from tweetclassifier.dataset import BertSeqTransform, LabelTransform, parse_json
-from tweetclassifier.utils import logging_config, load_object, make_output_dirs
-from tweetclassifier.BertClassifer import BertClassifer
+from torchvision import *
+from arabiner.trainers import BertTrainer
+from arabiner.data.dataset import get_dataloaders, parse_json
+from arabiner.data.transformers import BertSeqTransform, LabelTransform
+from arabiner.utils.helpers import logging_config, load_object, make_output_dirs
+from arabiner.nn.BertClassifer import BertClassifer
 
 logger = logging.getLogger(__name__)
 
@@ -158,7 +156,7 @@ def main(args):
     scheduler = load_object(args.lr_scheduler["fn"], args.lr_scheduler["kwargs"])
     loss = load_object(args.loss["fn"], args.loss["kwargs"])
 
-    trainer = Trainer(
+    trainer = BertTrainer(
         model=model,
         max_epochs=args.max_epochs,
         optimizer=optimizer,

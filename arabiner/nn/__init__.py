@@ -1,0 +1,1 @@
+from arabicner.trainers.BaseTrainer import BaseTrainer

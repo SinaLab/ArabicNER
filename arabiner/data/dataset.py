@@ -1,60 +1,12 @@
 import json
 import torch
-from torchtext.vocab import Vocab
-from transformers import BertTokenizer
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import itertools
 from collections import Counter
-from functools import partial
-from nltk.corpus import stopwords
-from nltk import word_tokenize
-from nltk.stem import WordNetLemmatizer
-import string
 import logging
-import re
 
 logger = logging.getLogger(__name__)
-
-
-class TextTransform:
-    def __init__(self):
-        self.lemmatizer = WordNetLemmatizer()
-        self.exclude = re.compile("[{}]+$".format(re.escape(string.punctuation)))
-
-    def __call__(self, example):
-        tokens = word_tokenize(example["text"])
-
-        tokens = [
-            self.lemmatizer.lemmatize(token.lower(), pos="v")
-            for token in tokens
-            if token not in stopwords.words() and not self.exclude.match(token)
-        ]
-        example["tokens"] = tokens
-        return example
-
-
-class BertSeqTransform:
-    def __init__(self, bert_model, max_seq_len=512):
-        self.tokenizer = partial(
-            BertTokenizer.from_pretrained(bert_model, do_lower_case=True).encode,
-            max_length=max_seq_len,
-            truncation=True,
-        )
-
-    def __call__(self, example):
-        example["encoded_seq"] = torch.Tensor(self.tokenizer(example["text"])).long()
-        return example
-
-
-class LabelTransform:
-    def __init__(self, labels, multi_label=False):
-        self.label_vocab = Vocab(labels, specials=[])
-        self.multi_label = multi_label
-
-    def __call__(self, example):
-        example["encoded_label"] = self.label_vocab.stoi[example["labels"][0]]
-        return example
 
 
 class DefaultDataset(Dataset):

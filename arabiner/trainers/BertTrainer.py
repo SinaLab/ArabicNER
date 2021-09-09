@@ -2,12 +2,12 @@ import os
 import logging
 import torch
 import numpy as np
-from tweetclassifier.metrics import compute_metrics
+from arabiner.utils.metrics import compute_metrics
 
 logger = logging.getLogger(__name__)
 
 
-class Trainer:
+class BaseTrainer:
     def __init__(
         self,
         model,

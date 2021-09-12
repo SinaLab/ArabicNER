@@ -1,9 +1,7 @@
-import json
+import csv
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
-import itertools
-from collections import Counter
 import logging
 
 logger = logging.getLogger(__name__)
@@ -22,21 +20,20 @@ class DefaultDataset(Dataset):
         return example["encoded_seq"], example["encoded_label"]
 
 
-def parse_json(data_paths):
-    datasets = list()
-    labels = list()
+def conll_to_segments(filename):
+    segments, segment = list(), list()
 
-    for data_path in data_paths:
-        with open(data_path, "r") as fh:
-            dataset = json.load(fh)
-            datasets.append(dataset)
-            labels += itertools.chain(*[tweet["labels"] for tweet in dataset])
-            logger.info("%d examples found in %s", len(dataset), data_path)
+    with open(filename, "r") as fh:
+        for token in fh.read().splitlines():
+            if not token:
+                segments.append(segment)
+                segment = list()
+            else:
+                segment.append(token)
 
-    labels = Counter(labels)
-    logger.info("Labels %s", labels)
+        segments.append(segment)
 
-    return datasets, labels
+    return segments
 
 
 def get_dataloaders(

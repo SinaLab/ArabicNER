@@ -7,7 +7,7 @@ from arabiner.utils.metrics import compute_metrics
 logger = logging.getLogger(__name__)
 
 
-class BaseTrainer:
+class BertTrainer:
     def __init__(
         self,
         model,

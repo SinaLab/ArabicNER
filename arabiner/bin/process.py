@@ -15,7 +15,7 @@ def to_conll_format(input_files, output_path):
         prev_sent_id = None
 
         with open(input_file, "r") as fh:
-            r = csv.reader(fh, delimiter="\t")
+            r = csv.reader(fh, delimiter="\t", quotechar=" ")
             next(r)
 
             for row in r:
@@ -44,7 +44,7 @@ def to_conll_format(input_files, output_path):
 
 def train_dev_test_split(input_files, output_path, train_ratio, dev_ratio):
     segments = list()
-    filenames = ["train.txt", "dev.txt", "test.txt"]
+    filenames = ["train.txt", "val.txt", "test.txt"]
 
     for input_file in input_files:
         segments += conll_to_segments(input_file)
@@ -58,7 +58,7 @@ def train_dev_test_split(input_files, output_path, train_ratio, dev_ratio):
         filename = os.path.join(output_path, filenames[i])
 
         with open(filename, "w") as fh:
-            text = "\n\n".join("\n".join(segment) for segment in datasets[i])
+            text = "\n\n".join(["\n".join([" ".join(token) for token in segment]) for segment in datasets[i]])
             fh.write(text)
             logging.info("Output file %s", filename)
 

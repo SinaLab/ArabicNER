@@ -1,7 +1,7 @@
-import csv
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
+from collections import Counter
 import logging
 
 logger = logging.getLogger(__name__)
@@ -29,11 +29,22 @@ def conll_to_segments(filename):
                 segments.append(segment)
                 segment = list()
             else:
-                segment.append(token)
+                segment.append(tuple(token.split()))
 
         segments.append(segment)
 
     return segments
+
+
+def parse_conll_files(data_paths):
+    datasets, labels = list(), list()
+
+    for data_path in data_paths:
+        dataset = conll_to_segments(data_path)
+        datasets.append(dataset)
+        labels += [token[1] for segment in dataset for token in segment]
+
+    return tuple(datasets), Counter(labels)
 
 
 def get_dataloaders(

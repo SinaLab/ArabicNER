@@ -1,10 +1,11 @@
+import os
 import logging
 import json
 import argparse
 import torch.utils.tensorboard
 from torchvision import *
 from arabiner.trainers import BertTrainer
-from arabiner.data.dataset import get_dataloaders, parse_json
+from arabiner.data.dataset import get_dataloaders, parse_conll_files
 from arabiner.data.transformers import BertSeqTransform, LabelTransform
 from arabiner.utils.helpers import logging_config, load_object, make_output_dirs
 from arabiner.nn.BertClassifer import BertClassifer
@@ -128,7 +129,7 @@ def main(args):
         logger.info("Writing config to %s", args_file)
         json.dump(args.__dict__, fh, indent=4)
 
-    datasets, labels = parse_json((args.train_path, args.val_path, args.test_path))
+    datasets, labels = parse_conll_files((args.train_path, args.val_path, args.test_path))
     transform = transforms.Compose(
         [
             BertSeqTransform(args.bert_model, max_seq_len=args.max_seq_len),

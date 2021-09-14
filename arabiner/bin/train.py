@@ -6,9 +6,9 @@ import torch.utils.tensorboard
 from torchvision import *
 from arabiner.trainers import BertTrainer
 from arabiner.data.dataset import get_dataloaders, parse_conll_files
-from arabiner.data.transformers import BertSeqTransform, LabelTransform
+from arabiner.data.transforms import BertSeqTransform, LabelTransform
 from arabiner.utils.helpers import logging_config, load_object, make_output_dirs
-from arabiner.nn.BertClassifer import BertClassifer
+from arabiner.nn.BertSeqTagger import BertSeqTagger
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def parse_args():
     parser.add_argument(
         "--bert_model",
         type=str,
-        default="bert-base-uncased",
+        default="aubmindlab/bert-base-arabertv2",
         help="BERT model",
     )
 
@@ -140,7 +140,7 @@ def main(args):
         datasets, transform, batch_size=args.batch_size
     )
 
-    model = BertClassifer(args.bert_model, num_labels=len(labels), dropout=0.1)
+    model = BertSeqTagger(args.bert_model, num_labels=len(labels), dropout=0.1)
 
     if torch.cuda.is_available():
         model = model.cuda()

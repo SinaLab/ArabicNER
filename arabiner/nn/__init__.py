@@ -1,1 +1,1 @@
-from arabiner.trainers.BertTrainer import BertTrainer
+from arabiner.nn.BertSeqTagger import BertSeqTagger

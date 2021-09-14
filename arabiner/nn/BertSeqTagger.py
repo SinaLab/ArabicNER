@@ -2,7 +2,7 @@ import torch.nn as nn
 from transformers import BertModel
 
 
-class BertClassifer(nn.Module):
+class BertSeqTagger(nn.Module):
     def __init__(self, bert_model, num_labels=2, dropout=0.1):
         super().__init__()
 

@@ -1,10 +1,26 @@
-import torch
+import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
-from collections import Counter
+from torchtext.vocab import Vocab
+from collections import Counter, namedtuple
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class Token:
+    def __init__(self, text=None, pred_tag=None, gold_tag=None):
+        self.text = text
+        self.gold_tag = gold_tag
+        self.pred_tag = pred_tag
+
+    def __str__(self):
+        if self.gold_tag:
+            r = f"{self.text}\t{self.gold_tag}\t{self.pred_tag}"
+        else:
+            r = f"{self.text}\t{self.pred_tag}"
+
+        return r
 
 
 class DefaultDataset(Dataset):
@@ -16,8 +32,8 @@ class DefaultDataset(Dataset):
         return len(self.examples)
 
     def __getitem__(self, item):
-        example = self.transform(self.examples[item])
-        return example["encoded_seq"], example["encoded_label"]
+        subwords, tags, tokens, valid_len = self.transform(self.examples[item])
+        return subwords, tags, tokens, valid_len
 
 
 def conll_to_segments(filename):
@@ -37,14 +53,18 @@ def conll_to_segments(filename):
 
 
 def parse_conll_files(data_paths):
-    datasets, labels = list(), list()
+    vocabs = namedtuple("Vocab", ["tags", "tokens"])
+    datasets, tags, tokens = list(), list(), list()
 
     for data_path in data_paths:
         dataset = conll_to_segments(data_path)
         datasets.append(dataset)
-        labels += [token[1] for segment in dataset for token in segment]
+        tokens += [token[0] for segment in dataset for token in segment]
+        tags += [token[1] for segment in dataset for token in segment]
 
-    return tuple(datasets), Counter(labels)
+    vocabs = vocabs(tokens=Vocab(Counter(tokens)),
+                    tags=Vocab(Counter(tags)))
+    return tuple(datasets), vocabs
 
 
 def get_dataloaders(
@@ -70,6 +90,8 @@ def get_dataloaders(
 
 
 def batch_collate_fn(batch):
-    text, labels = zip(*batch)
-    text = pad_sequence(text, batch_first=True, padding_value=0)
-    return text, torch.Tensor(labels).long()
+    subwords, tags, tokens, valid_len = zip(*batch)
+    subwords = pad_sequence(subwords, batch_first=True, padding_value=0)
+    tags = pad_sequence(tags, batch_first=True, padding_value=0)
+    tokens = pad_sequence(tokens, batch_first=True, padding_value=0)
+    return subwords, tags, tokens, valid_len

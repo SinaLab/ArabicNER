@@ -8,10 +8,10 @@ class BertSeqTagger(nn.Module):
 
         self.bert = BertModel.from_pretrained(bert_model)
         self.dropout = nn.Dropout(dropout)
-        self.classifier = nn.Linear(768, num_labels)
+        self.linear = nn.Linear(768, num_labels)
 
     def forward(self, x):
-        _, x = self.bert(x)
-        x = self.dropout(x)
-        logits = self.classifier(x)
+        y = self.bert(x)
+        y = self.dropout(y["last_hidden_state"])
+        logits = self.linear(y)
         return logits

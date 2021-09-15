@@ -1,40 +1,16 @@
-import os
 import logging
 import torch
 import numpy as np
+from arabiner.data.dataset import Token
+from arabiner.trainers import BaseTrainer
 from arabiner.utils.metrics import compute_metrics
 
 logger = logging.getLogger(__name__)
 
 
-class BertTrainer:
-    def __init__(
-        self,
-        model,
-        max_epochs=50,
-        optimizer=None,
-        scheduler=None,
-        loss=None,
-        train_dataloader=None,
-        val_dataloader=None,
-        test_dataloader=None,
-        log_interval=10,
-        summary_writer=None,
-        output_path=None
-    ):
-        self.model = model
-        self.max_epochs = max_epochs
-        self.train_dataloader = train_dataloader
-        self.val_dataloader = val_dataloader
-        self.test_dataloader = test_dataloader
-        self.optimizer = optimizer
-        self.scheduler = scheduler
-        self.loss = loss
-        self.log_interval = log_interval
-        self.summary_writer = summary_writer
-        self.output_path = output_path
-        self.current_timestep = 0
-        self.current_epoch = 0
+class BertTrainer(BaseTrainer):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def train(self):
         best_val_loss, test_loss = np.inf, np.inf
@@ -44,124 +20,126 @@ class BertTrainer:
             self.current_epoch = epoch_index
             train_loss = 0
 
-            for batch_index, (_, gold_labels, logits) in enumerate(self.classify(
+            for batch_index, (_, gold_tags, _, logits, _) in enumerate(self.tag(
                 self.train_dataloader, is_train=True
             ), 1):
                 self.current_timestep += 1
-                loss = self.loss(logits, gold_labels)
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+                batch_loss = self.loss(logits.view(-1, logits.shape[-1]), gold_tags.view(-1))
+                batch_loss.backward()
                 self.optimizer.step()
                 self.scheduler.step()
-                train_loss += loss.item()
+                train_loss += batch_loss.item()
 
                 if self.current_timestep % self.log_interval == 0:
                     logger.info(
-                        "Epoch %d | Batch %d/%d | Timestep %d | LR %f",
+                        "Epoch %d | Batch %d/%d | Timestep %d | LR %f | Loss %f",
                         epoch_index,
                         batch_index,
                         num_train_batch,
                         self.current_timestep,
                         self.optimizer.param_groups[0]['lr'],
+                        batch_loss.item()
                     )
 
             train_loss /= num_train_batch
-            val_loss, val_golds, val_preds = self.eval(self.val_dataloader)
-            val_metrics = compute_metrics(val_golds.detach().cpu().numpy(), val_preds.detach().cpu().numpy())
+            val_loss, val_golds, val_preds, tokens, valid_len = self.eval(self.val_dataloader)
+            segments = self.to_segments(val_golds, val_preds, tokens, valid_len)
+            val_metrics = compute_metrics(segments)
 
-            epoch_summary = {
+            epoch_summary_loss = {
                 "train_loss": train_loss,
-                "val_loss": val_loss,
-                "val_f1": val_metrics.f1,
+                "val_loss": val_loss
+            }
+            epoch_summary_metrics ={
+                "val_micro_f1": val_metrics.micro_f1,
                 "val_precision": val_metrics.precision,
-                "val_recall": val_metrics.recall,
-                "val_accuracy": val_metrics.accuracy
+                "val_recall": val_metrics.recall
             }
 
             logger.info("Evaluating on validation dataset")
             logger.info(
-                "Epoch %d | Timestep %d | Train Loss %f | Val Loss %f | F1 %f | Pr %f | Re %f | Acc %f",
+                "Epoch %d | Timestep %d | Train Loss %f | Val Loss %f | F1 %f",
                 epoch_index,
                 self.current_timestep,
                 train_loss,
                 val_loss,
-                val_metrics.f1,
-                val_metrics.precision,
-                val_metrics.recall,
-                val_metrics.accuracy
+                val_metrics.micro_f1
             )
 
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 logger.info("Validation improved, evaluating test data...")
-                test_loss, test_golds, test_preds = self.eval(self.test_dataloader)
-                test_metrics = compute_metrics(test_golds.detach().cpu().numpy(), test_preds.detach().cpu().numpy())
-                epoch_summary["test_loss"] = test_loss
-                epoch_summary["test_f1"] = test_metrics.f1
-                epoch_summary["test_precision"] = test_metrics.precision
-                epoch_summary["test_recall"] = test_metrics.recall
-                epoch_summary["test_accuracy"] = test_metrics.accuracy
+                test_loss, test_golds, test_preds, tokens, valid_len = self.eval(self.test_dataloader)
+                segments = self.to_segments(test_golds, test_preds, tokens, valid_len)
+                test_metrics = compute_metrics(segments)
+                epoch_summary_loss["test_loss"] = test_loss
+                epoch_summary_metrics["test_micro_f1"] = test_metrics.micro_f1
+                epoch_summary_metrics["test_precision"] = test_metrics.precision
+                epoch_summary_metrics["test_recall"] = test_metrics.recall
 
                 logger.info(
-                    "Epoch %d | Timestep %d | Test Loss %f | F1 %f | Pr %f | Re %f | Acc %f",
+                    f"Epoch %d | Timestep %d | Test Loss %f | F1 %f",
                     epoch_index,
                     self.current_timestep,
                     test_loss,
-                    test_metrics.f1,
-                    test_metrics.precision,
-                    test_metrics.recall,
-                    test_metrics.accuracy
+                    test_metrics.micro_f1
                 )
 
                 self.save()
 
-            self.summary_writer.add_scalars("Loss", epoch_summary, global_step=self.current_timestep)
+            self.summary_writer.add_scalars("Loss", epoch_summary_loss, global_step=self.current_timestep)
+            self.summary_writer.add_scalars("Metrics", epoch_summary_metrics, global_step=self.current_timestep)
 
-    def classify(self, dataloader, is_train=True):
-        for text, gold_labels in dataloader:
+    def tag(self, dataloader, is_train=True):
+        for subwords, gold_tags, tokens, valid_len in dataloader:
             self.model.train(is_train)
 
             if torch.cuda.is_available():
-                text = text.cuda()
-                gold_labels = gold_labels.cuda()
+                subwords = subwords.cuda()
+                gold_tags = gold_tags.cuda()
 
             if is_train:
                 self.optimizer.zero_grad()
-                logits = self.model(text)
+                logits = self.model(subwords)
             else:
                 with torch.no_grad():
-                    logits = self.model(text)
+                    logits = self.model(subwords)
 
-            yield text, gold_labels, logits
+            yield subwords, gold_tags, tokens, logits, valid_len
 
     def eval(self, dataloader):
-        golds = list()
-        preds = list()
+        golds, preds, tokens, valid_lens = list(), list(), list(), list()
+        loss = 0
 
-        for _, gold_labels, logits in self.classify(
+        for _, gold_tags, batch_tokens, logits, valid_len in self.tag(
             dataloader, is_train=False
         ):
-            loss = self.loss(logits, gold_labels)
-            golds.append(gold_labels)
-            preds.append(logits)
+            loss += self.loss(logits.view(-1, logits.shape[-1]), gold_tags.view(-1))
+            golds += gold_tags.detach().cpu().numpy().tolist()
+            preds += torch.argmax(logits, dim=2).detach().cpu().numpy().tolist()
+            tokens += batch_tokens.detach().cpu().numpy().tolist()
+            valid_lens += list(valid_len)
 
-        golds = torch.cat(golds, dim=0)
-        preds = torch.argmax(torch.cat(preds, dim=0), dim=1)
+        loss /= len(dataloader)
 
-        return loss.item() / len(dataloader), golds, preds
+        return loss.item(), golds, preds, tokens, valid_lens
 
-    def save(self):
-        filename = os.path.join(
-            self.output_path,
-            "checkpoints",
-            "checkpoint_{}.pt".format(self.current_epoch),
-        )
+    def to_segments(self, golds, preds, text, valid_lens):
+        segments = list()
+        unk_id = self.vocab.tokens.stoi["UNK"]
 
-        checkpoint = {
-            "model": self.model.state_dict(),
-            "optimizer": self.optimizer.state_dict(),
-            "epoch": self.current_epoch
-        }
+        for gold, pred, tokens, valid_len in zip(golds, preds, text, valid_lens):
+            # First, the token at 0th index [CLS] and token at nth index [SEP]
+            gold = gold[1:valid_len-1]
+            pred = pred[1:valid_len-1]
+            tokens = tokens[1:valid_len-1]
 
-        logger.info("Saving checkpoint to %s", filename)
-        torch.save(checkpoint, filename)
+            segment = [Token(
+                text=self.vocab.tokens.itos[t],
+                pred_tag=self.vocab.tags.itos[p],
+                gold_tag=self.vocab.tags.itos[g])
+                for t, p, g in zip(tokens, pred, gold) if t != unk_id]
+
+            segments.append(segment)
+
+        return segments

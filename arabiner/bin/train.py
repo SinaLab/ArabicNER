@@ -6,7 +6,7 @@ import torch.utils.tensorboard
 from torchvision import *
 from arabiner.trainers import BertTrainer
 from arabiner.data.dataset import get_dataloaders, parse_conll_files
-from arabiner.data.transforms import BertSeqTransform, LabelTransform
+from arabiner.data.transforms import BertSeqTransform
 from arabiner.utils.helpers import logging_config, load_object, make_output_dirs
 from arabiner.nn.BertSeqTagger import BertSeqTagger
 
@@ -91,7 +91,7 @@ def parse_args():
     parser.add_argument(
         "--loss",
         type=json.loads,
-        default='{"fn": "torch.nn.BCEWithLogitsLoss", "kwargs": {}}',
+        default='{"fn": "torch.nn.CrossEntropyLoss", "kwargs": {}}',
         help="Loss function configurations",
     )
 
@@ -129,18 +129,17 @@ def main(args):
         logger.info("Writing config to %s", args_file)
         json.dump(args.__dict__, fh, indent=4)
 
-    datasets, labels = parse_conll_files((args.train_path, args.val_path, args.test_path))
+    datasets, vocab = parse_conll_files((args.train_path, args.val_path, args.test_path))
     transform = transforms.Compose(
         [
-            BertSeqTransform(args.bert_model, max_seq_len=args.max_seq_len),
-            LabelTransform(labels),
+            BertSeqTransform(args.bert_model, vocab, max_seq_len=args.max_seq_len)
         ]
     )
     train_dataloader, val_dataloader, test_dataloader = get_dataloaders(
         datasets, transform, batch_size=args.batch_size
     )
 
-    model = BertSeqTagger(args.bert_model, num_labels=len(labels), dropout=0.1)
+    model = BertSeqTagger(args.bert_model, num_labels=len(vocab.tags), dropout=0.1)
 
     if torch.cuda.is_available():
         model = model.cuda()
@@ -168,7 +167,8 @@ def main(args):
         test_dataloader=test_dataloader,
         log_interval=args.log_interval,
         summary_writer=summary_writer,
-        output_path=args.output_path
+        output_path=args.output_path,
+        vocab=vocab
     )
     trainer.train()
     return

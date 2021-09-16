@@ -24,11 +24,18 @@ def to_conll_format(input_files, output_path):
                 if not labels:
                     logging.warning("Token %s has no label", str(row))
                     continue
+                if not token:
+                    logging.warning("Token %s is missing", str(row))
+                    continue
+                if len(token.split()) > 1:
+                    logging.warning("Token %s has multiple tokens", str(row))
+                    continue
 
                 if prev_sent_id is not None and sent_id != prev_sent_id:
                     tokens.append([])
 
                 tokens.append([token, labels[0]])
+
                 prev_sent_id = sent_id
 
         num_segments = sum([1 for token in tokens if not token])

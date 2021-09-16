@@ -51,3 +51,11 @@ class BaseTrainer:
 
         logger.info("Saving checkpoint to %s", filename)
         torch.save(checkpoint, filename)
+
+    def segments_to_file(self, segments):
+        filename = os.path.join(self.output_path, "predictions.txt")
+        with open(filename, "w") as fh:
+            results = "\n\n".join(["\n".join([t.__str__() for t in segment]) for segment in segments])
+            fh.write("Token\tGold Tag\tPredicted Tag\n")
+            fh.write(results)
+            logging.info("Predictions written to %s", filename)

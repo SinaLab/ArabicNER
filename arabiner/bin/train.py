@@ -129,16 +129,20 @@ def main(args):
         logger.info("Writing config to %s", args_file)
         json.dump(args.__dict__, fh, indent=4)
 
+    # Get the datasets and vocab for tags and tokens
     datasets, vocab = parse_conll_files((args.train_path, args.val_path, args.test_path))
     transform = transforms.Compose(
         [
             BertSeqTransform(args.bert_model, vocab, max_seq_len=args.max_seq_len)
         ]
     )
+
+    # From the datasets generate the dataloaders
     train_dataloader, val_dataloader, test_dataloader = get_dataloaders(
         datasets, transform, batch_size=args.batch_size
     )
 
+    # Load BERT tagger
     model = BertSeqTagger(args.bert_model, num_labels=len(vocab.tags), dropout=0.1)
 
     if torch.cuda.is_available():

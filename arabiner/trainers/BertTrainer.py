@@ -71,6 +71,7 @@ class BertTrainer(BaseTrainer):
                 logger.info("Validation improved, evaluating test data...")
                 test_loss, test_golds, test_preds, tokens, valid_len = self.eval(self.test_dataloader)
                 segments = self.to_segments(test_golds, test_preds, tokens, valid_len)
+                self.segments_to_file(segments)
                 test_metrics = compute_metrics(segments)
                 epoch_summary_loss["test_loss"] = test_loss
                 epoch_summary_metrics["test_micro_f1"] = test_metrics.micro_f1

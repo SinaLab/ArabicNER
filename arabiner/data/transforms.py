@@ -31,7 +31,7 @@ class BertSeqTransform:
         tokens.insert(0, self.tokenizer.cls_token_id)
         tokens.append(self.tokenizer.sep_token_id)
 
-        tags.insert(0, self.vocab.tags.stoi["UNK"])
-        tags.append(self.vocab.tags.stoi["UNK"])
+        tags.insert(0, self.vocab.tags.stoi["O"])
+        tags.append(self.vocab.tags.stoi["O"])
 
         return torch.LongTensor(subwords), torch.LongTensor(tags), torch.LongTensor(tokens), len(tokens)

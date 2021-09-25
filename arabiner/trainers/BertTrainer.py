@@ -125,7 +125,7 @@ class BertTrainer(BaseTrainer):
 
         return loss.item(), golds, preds, tokens, valid_lens
 
-    def infer(self, dataloader):
+    def infer(self, dataloader, vocab):
         golds, preds, tokens, valid_lens = list(), list(), list(), list()
 
         for _, gold_tags, batch_tokens, logits, valid_len in self.tag(
@@ -136,11 +136,15 @@ class BertTrainer(BaseTrainer):
             tokens += batch_tokens.detach().cpu().numpy().tolist()
             valid_lens += list(valid_len)
 
-        return golds, preds, tokens, valid_lens
+        segments = self.to_segments(golds, preds, tokens, valid_lens, vocab=vocab)
+        return segments
 
-    def to_segments(self, golds, preds, text, valid_lens):
+    def to_segments(self, golds, preds, text, valid_lens, vocab=None):
+        if vocab is None:
+            vocab = self.vocab
+
         segments = list()
-        unk_id = self.vocab.tokens.stoi["UNK"]
+        unk_id = vocab.tokens.stoi["UNK"]
 
         for gold, pred, tokens, valid_len in zip(golds, preds, text, valid_lens):
             # First, the token at 0th index [CLS] and token at nth index [SEP]
@@ -149,9 +153,9 @@ class BertTrainer(BaseTrainer):
             tokens = tokens[1:valid_len-1]
 
             segment = [Token(
-                text=self.vocab.tokens.itos[t],
-                pred_tag=self.vocab.tags.itos[p],
-                gold_tag=self.vocab.tags.itos[g])
+                text=vocab.tokens.itos[t],
+                pred_tag=vocab.tags.itos[p],
+                gold_tag=vocab.tags.itos[g])
                 for t, p, g in zip(tokens, pred, gold) if t != unk_id]
 
             segments.append(segment)

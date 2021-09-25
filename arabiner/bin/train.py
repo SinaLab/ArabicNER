@@ -4,6 +4,7 @@ import json
 import argparse
 import torch.utils.tensorboard
 from torchvision import *
+import pickle
 from arabiner.trainers import BertTrainer
 from arabiner.data.dataset import get_dataloaders, parse_conll_files
 from arabiner.data.transforms import BertSeqTransform
@@ -131,6 +132,11 @@ def main(args):
 
     # Get the datasets and vocab for tags and tokens
     datasets, vocab = parse_conll_files((args.train_path, args.val_path, args.test_path))
+
+    # Save tag vocab to desk
+    with open(os.path.join(args.output_path, "tag_vocab.pkl"), "wb") as fh:
+        pickle.dump(vocab.tags, fh)
+
     transform = transforms.Compose(
         [
             BertSeqTransform(args.bert_model, vocab, max_seq_len=args.max_seq_len)

@@ -1,6 +1,8 @@
 import os
 import torch
 import logging
+import natsort
+import glob
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +53,14 @@ class BaseTrainer:
 
         logger.info("Saving checkpoint to %s", filename)
         torch.save(checkpoint, filename)
+
+    def load(self, checkpoint_path):
+        checkpoint_path = natsort.natsorted(glob.glob(f"{checkpoint_path}/checkpoint_*.pt"))
+        checkpoint_path = checkpoint_path[-1]
+
+        logger.info("Loading checkpoint %s", checkpoint_path)
+        checkpoint = torch.load(checkpoint_path)
+        self.model.load_state_dict(checkpoint["model"])
 
     def segments_to_file(self, segments):
         filename = os.path.join(self.output_path, "predictions.txt")

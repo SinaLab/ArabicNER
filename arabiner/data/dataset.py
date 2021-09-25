@@ -116,6 +116,19 @@ def parse_conll_files(data_paths):
     return tuple(datasets), vocabs
 
 
+def text2segments(text):
+    """
+    Convert text to a datasets and index the tokens
+    """
+    segments = text.split(".")
+    dataset = [[(token, "O") for token in segment.split()] for segment in segments]
+    tokens = [token[0] for segment in dataset for token in segment]
+
+    # Generate vocabs for tags and tokens
+    vocab = Vocab(Counter(tokens))
+    return dataset, vocab
+
+
 def get_dataloaders(
     datasets, transform, batch_size=32, num_workers=0, shuffle=(True, True, False)
 ):

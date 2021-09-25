@@ -125,6 +125,19 @@ class BertTrainer(BaseTrainer):
 
         return loss.item(), golds, preds, tokens, valid_lens
 
+    def infer(self, dataloader):
+        golds, preds, tokens, valid_lens = list(), list(), list(), list()
+
+        for _, gold_tags, batch_tokens, logits, valid_len in self.tag(
+            dataloader, is_train=False
+        ):
+            golds += gold_tags.detach().cpu().numpy().tolist()
+            preds += torch.argmax(logits, dim=2).detach().cpu().numpy().tolist()
+            tokens += batch_tokens.detach().cpu().numpy().tolist()
+            valid_lens += list(valid_len)
+
+        return golds, preds, tokens, valid_lens
+
     def to_segments(self, golds, preds, text, valid_lens):
         segments = list()
         unk_id = self.vocab.tokens.stoi["UNK"]

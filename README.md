@@ -20,8 +20,6 @@ need the following:
 The model can be downloaded [here](https://drive.google.com/file/d/1eWplRGCnxPkXGcczbYJJlytMG5tAWJaq/view?usp=sharing). 
 Note that the model has the following structure and it is important to keep the same structure for inference to work.
 
-:arrow_down:
-
     .
     ├── args.json
     ├── checkpoints

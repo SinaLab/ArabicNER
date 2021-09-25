@@ -17,7 +17,7 @@ Inference is the process of used a pre-trained model to perform tagging on a new
 need the following:
 
 #### Model
-The model can be downloaded [here](https://drive.google.com/file/d/1eWplRGCnxPkXGcczbYJJlytMG5tAWJaq/view?usp=sharing). 
+The model can be downloaded [here](https://drive.google.com/file/d/1Dh70T7Blmi78WrJHLkp2yldtji9Ag47C/view?usp=sharing). 
 Note that the model has the following structure and it is important to keep the same structure for inference to work.
 
     .
@@ -56,29 +56,21 @@ provided in the `bin` directory `infer.py` script that performs inference.
 
 The `infer.py` has the following parameters:
 
-    usage: infer.py [-h] --output_path OUTPUT_PATH --model_path MODEL_PATH --text
-                    TEXT [--batch_size BATCH_SIZE] [--max_seq_len MAX_SEQ_LEN]
-                    [--overwrite]
+    usage: infer.py [-h] --model_path MODEL_PATH --text
+                    TEXT [--batch_size BATCH_SIZE] 
     
     optional arguments:
       -h, --help            show this help message and exit
-      --output_path OUTPUT_PATH
-                            Output path to which logs are saved (default: None)
       --model_path MODEL_PATH
                             Model path for a pre-trained model, for this we you need to download the checkpoint from this repo  (default: None)
       --text TEXT           Text or sequence to tag, segments will be identified based on periods (default: None)
       --batch_size BATCH_SIZE
                             Batch size (default: 32)
-      --max_seq_len MAX_SEQ_LEN
-                            Maximum sequence length (default: 512)
-      --overwrite           Overwrite output directory (default: False)
-
+      
 Example inference command:
 
-    python -u /path/to/ArabiNER/arabiner/bin/infer.py 
-           --output_path /path/to/some/dir 
+    python -u /path/to/ArabiNER/arabiner/bin/infer.py
            --model_path /path/to/model
-           --overwrite 
            --text "وثائق نفوس شخصية من الفترة العثمانية للسيد نعمان عقل"
 
 Features

@@ -137,11 +137,7 @@ def main(args):
     with open(os.path.join(args.output_path, "tag_vocab.pkl"), "wb") as fh:
         pickle.dump(vocab.tags, fh)
 
-    transform = transforms.Compose(
-        [
-            BertSeqTransform(args.bert_model, vocab, max_seq_len=args.max_seq_len)
-        ]
-    )
+    transform = BertSeqTransform(args.bert_model, vocab, max_seq_len=args.max_seq_len)
 
     # From the datasets generate the dataloaders
     train_dataloader, val_dataloader, test_dataloader = get_dataloaders(

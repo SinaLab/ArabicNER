@@ -42,7 +42,7 @@ class DefaultDataset(Dataset):
         """
         self.transform = transform
         self.examples = examples
-        self.vocab = transform.transforms[0].vocab
+        self.vocab = transform.vocab
 
     def __len__(self):
         return len(self.examples)

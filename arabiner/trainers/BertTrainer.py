@@ -1,7 +1,7 @@
 import logging
 import torch
 import numpy as np
-from arabiner.data.dataset import Token
+from arabiner.data.datasets import Token
 from arabiner.trainers import BaseTrainer
 from arabiner.utils.metrics import compute_metrics
 

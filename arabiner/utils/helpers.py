@@ -7,8 +7,6 @@ import torch
 import pickle
 import json
 from argparse import Namespace
-from arabiner.trainers import BertTrainer
-from arabiner.nn.BertSeqTagger import BertSeqTagger
 
 
 def logging_config(log_file=None):
@@ -54,12 +52,15 @@ def load_checkpoint(model_path):
         train_config.__dict__ = json.load(fh)
 
     # Load BERT tagger
-    model = BertSeqTagger(train_config.bert_model, num_labels=len(tag_vocab), dropout=0)
+    train_config.network_config["kwargs"]["num_labels"] = len(tag_vocab)
+    model = load_object(train_config.network_config["fn"], train_config.network_config["kwargs"])
 
     if torch.cuda.is_available():
         model = model.cuda()
 
     # Load the tagger
-    tagger = BertTrainer(model=model)
+    train_config.trainer_config["kwargs"]["model"] = model
+
+    tagger = load_object(train_config.trainer_config["fn"], train_config.trainer_config["kwargs"])
     tagger.load(os.path.join(model_path, "checkpoints"))
     return tagger, tag_vocab, train_config

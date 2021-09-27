@@ -5,11 +5,8 @@ import argparse
 import torch.utils.tensorboard
 from torchvision import *
 import pickle
-from arabiner.trainers import BertTrainer
-from arabiner.data.dataset import get_dataloaders, parse_conll_files
-from arabiner.data.transforms import BertSeqTransform
+from arabiner.utils.data import get_dataloaders, parse_conll_files
 from arabiner.utils.helpers import logging_config, load_object, make_output_dirs
-from arabiner.nn.BertSeqTagger import BertSeqTagger
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +45,6 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--max_epochs",
-        type=int,
-        default=50,
-        help="Number of epochs",
-    )
-
-    parser.add_argument(
         "--bert_model",
         type=str,
         default="aubmindlab/bert-base-arabertv2",
@@ -76,9 +66,38 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=0,
+        help="Dataloader number of workers",
+    )
+
+    parser.add_argument(
+        "--data_config",
+        type=json.loads,
+        default='{"fn": "arabiner.data.datasets.DefaultDataset", "kwargs": {"max_seq_len": 512}}',
+        help="Dataset configurations",
+    )
+
+    parser.add_argument(
+        "--trainer_config",
+        type=json.loads,
+        default='{"fn": "arabiner.trainers.BertTrainer", "kwargs": {"max_epochs": 50}}',
+        help="Trainer configurations",
+    )
+
+    parser.add_argument(
+        "--network_config",
+        type=json.loads,
+        default='{"fn": "arabiner.nn.BertSeqTagger", "kwargs": '
+                '{"dropout": 0.1, "bert_model": "aubmindlab/bert-base-arabertv2"}}',
+        help="Network configurations",
+    )
+
+    parser.add_argument(
         "--optimizer",
         type=json.loads,
-        default='{"fn": "torch.optim.Adam", "kwargs": {"lr": 0.0001}}',
+        default='{"fn": "torch.optim.AdamW", "kwargs": {"lr": 0.0001}}',
         help="Optimizer configurations",
     )
 
@@ -100,13 +119,6 @@ def parse_args():
         "--overwrite",
         action="store_true",
         help="Overwrite output directory",
-    )
-
-    parser.add_argument(
-        "--max_seq_len",
-        type=int,
-        default=512,
-        help="Maximum sequence length",
     )
 
     args = parser.parse_args()
@@ -137,15 +149,15 @@ def main(args):
     with open(os.path.join(args.output_path, "tag_vocab.pkl"), "wb") as fh:
         pickle.dump(vocab.tags, fh)
 
-    transform = BertSeqTransform(args.bert_model, vocab, max_seq_len=args.max_seq_len)
-
     # From the datasets generate the dataloaders
+    args.data_config["kwargs"]["bert_model"] = args.network_config["kwargs"]["bert_model"]
     train_dataloader, val_dataloader, test_dataloader = get_dataloaders(
-        datasets, transform, batch_size=args.batch_size
+        datasets, vocab, args.data_config, args.batch_size, args.num_workers
     )
 
     # Load BERT tagger
-    model = BertSeqTagger(args.bert_model, num_labels=len(vocab.tags), dropout=0.1)
+    args.network_config["kwargs"]["num_labels"] = len(vocab.tags)
+    model = load_object(args.network_config["fn"], args.network_config["kwargs"])
 
     if torch.cuda.is_available():
         model = model.cuda()
@@ -162,20 +174,21 @@ def main(args):
     scheduler = load_object(args.lr_scheduler["fn"], args.lr_scheduler["kwargs"])
     loss = load_object(args.loss["fn"], args.loss["kwargs"])
 
-    trainer = BertTrainer(
-        model=model,
-        max_epochs=args.max_epochs,
-        optimizer=optimizer,
-        scheduler=scheduler,
-        loss=loss,
-        train_dataloader=train_dataloader,
-        val_dataloader=val_dataloader,
-        test_dataloader=test_dataloader,
-        log_interval=args.log_interval,
-        summary_writer=summary_writer,
-        output_path=args.output_path,
-        vocab=vocab
-    )
+    args.trainer_config["kwargs"].update({
+        "model": model,
+        "optimizer": optimizer,
+        "scheduler": scheduler,
+        "loss": loss,
+        "train_dataloader": train_dataloader,
+        "val_dataloader": val_dataloader,
+        "test_dataloader": test_dataloader,
+        "log_interval": args.log_interval,
+        "summary_writer": summary_writer,
+        "output_path": args.output_path,
+        "vocab": vocab
+    })
+
+    trainer = load_object(args.trainer_config["fn"], args.trainer_config["kwargs"])
     trainer.train()
     return
 

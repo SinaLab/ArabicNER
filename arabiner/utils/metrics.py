@@ -1,4 +1,3 @@
-from seqeval.scheme import IOB2
 from seqeval.metrics import (
     classification_report,
     precision_score,

@@ -4,7 +4,7 @@ import csv
 import logging
 import numpy as np
 from arabiner.utils.helpers import logging_config
-from arabiner.data.dataset import conll_to_segments
+from arabiner.utils.data import conll_to_segments
 
 logger = logging.getLogger(__name__)
 

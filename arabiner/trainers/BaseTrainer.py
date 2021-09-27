@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class BaseTrainer:
     def __init__(
         self,
-        model,
+        model=None,
         max_epochs=50,
         optimizer=None,
         scheduler=None,

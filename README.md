@@ -5,11 +5,19 @@ Arabic language tagger for named entity recognition.
 
 Requirements
 --------
+Clone this repo
+
+    git clone https://github.com/mohammedkhalilia/ArabiNER.git
+
 This package has dependencies on multiple Python packages. It is recommended to Conda to create a new environment 
 that mimics the same environment the model was trained in. Provided in this repo `environment.yml` from which you 
 can create a new conda environment using the command below.
 
     conda env create -f environment.yml
+
+Update your PYTHONPATH to point to ArabiNER package
+
+    export PYTHONPATH=PYTHONPATH:/path/to/ArabiNER
 
 Inference
 --------
@@ -17,7 +25,7 @@ Inference is the process of used a pre-trained model to perform tagging on a new
 need the following:
 
 #### Model
-The model can be downloaded [here](https://drive.google.com/file/d/1Dh70T7Blmi78WrJHLkp2yldtji9Ag47C/view?usp=sharing). 
+The model can be downloaded [here](https://drive.google.com/drive/folders/19GcZ4CrZMcFVG9jdY0jxdrdno85bcGdW?usp=sharing). 
 Note that the model has the following structure and it is important to keep the same structure for inference to work.
 
     .

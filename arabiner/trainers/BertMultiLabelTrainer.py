@@ -8,7 +8,7 @@ from arabiner.utils.metrics import compute_metrics
 logger = logging.getLogger(__name__)
 
 
-class BertTrainer(BaseTrainer):
+class BertMultiLabelTrainer(BaseTrainer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -24,7 +24,7 @@ class BertTrainer(BaseTrainer):
                 self.train_dataloader, is_train=True
             ), 1):
                 self.current_timestep += 1
-                batch_loss = self.loss(logits.view(-1, logits.shape[-1]), gold_tags.view(-1))
+                batch_loss = self.loss(logits, gold_tags)
                 batch_loss.backward()
                 self.optimizer.step()
                 self.scheduler.step()
@@ -115,9 +115,9 @@ class BertTrainer(BaseTrainer):
         for _, gold_tags, batch_tokens, logits, valid_len in self.tag(
             dataloader, is_train=False
         ):
-            loss += self.loss(logits.view(-1, logits.shape[-1]), gold_tags.view(-1))
+            loss += self.loss(logits, gold_tags)
             golds += gold_tags.detach().cpu().numpy().tolist()
-            preds += torch.argmax(logits, dim=2).detach().cpu().numpy().tolist()
+            preds += torch.nn.Sigmoid()(logits).detach().cpu().numpy().tolist()
             tokens += batch_tokens.detach().cpu().numpy().tolist()
             valid_lens += list(valid_len)
 

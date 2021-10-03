@@ -2,6 +2,7 @@ from torch.utils.data import DataLoader
 from torchtext.vocab import Vocab
 from collections import Counter, namedtuple
 import logging
+import itertools
 from arabiner.utils.helpers import load_object
 
 logger = logging.getLogger(__name__)
@@ -47,7 +48,10 @@ def parse_conll_files(data_paths):
         dataset = conll_to_segments(data_path)
         datasets.append(dataset)
         tokens += [token[0] for segment in dataset for token in segment]
-        tags += [token[1] for segment in dataset for token in segment]
+        tags += [token[1:] for segment in dataset for token in segment]
+
+    # Flatten list of tags
+    tags = list(itertools.chain(*tags))
 
     # Generate vocabs for tags and tokens
     vocabs = vocabs(tokens=Vocab(Counter(tokens)), tags=Vocab(Counter(tags)))

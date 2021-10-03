@@ -9,7 +9,7 @@ from arabiner.utils.data import conll_to_segments
 logger = logging.getLogger(__name__)
 
 
-def to_conll_format(input_files, output_path):
+def to_conll_format(input_files, output_path, multi_label=False):
     for input_file in input_files:
         tokens = list()
         prev_sent_id = None
@@ -34,7 +34,10 @@ def to_conll_format(input_files, output_path):
                 if prev_sent_id is not None and sent_id != prev_sent_id:
                     tokens.append([])
 
-                tokens.append([token, labels[0]])
+                if multi_label:
+                    tokens.append([token] + labels)
+                else:
+                    tokens.append([token, labels[0]])
 
                 prev_sent_id = sent_id
 
@@ -72,7 +75,7 @@ def train_dev_test_split(input_files, output_path, train_ratio, dev_ratio):
 
 def main(args):
     if args.task == "to_conll_format":
-        to_conll_format(args.input_files, args.output_path)
+        to_conll_format(args.input_files, args.output_path, multi_label=args.multi_label)
     if args.task == "train_dev_test_split":
         train_dev_test_split(args.input_files, args.output_path, args.train_ratio, args.dev_ratio)
 
@@ -115,6 +118,10 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--task", required=True, choices=["to_conll_format", "train_dev_test_split"]
+    )
+
+    parser.add_argument(
+        "--multi_label", action='store_true'
     )
 
     args = parser.parse_args()

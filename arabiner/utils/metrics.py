@@ -11,6 +11,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def compute_multi_label_metrics(segments):
+    return None
+
+
 def compute_metrics(segments):
     y = [[token.gold_tag for token in segment] for segment in segments]
     y_hat = [[token.pred_tag for token in segment] for segment in segments]

@@ -20,7 +20,11 @@ def to_conll_format(input_files, output_path, multi_label=False):
 
             for row in r:
                 sent_id, token, labels = row[1], row[3], row[4].split()
+                valid_labels = sum([1 for l in labels if "-" in l or l == "O"]) == len(labels)
 
+                if not valid_labels:
+                    logging.warning("Invalid labels found %s", str(row))
+                    continue
                 if not labels:
                     logging.warning("Token %s has no label", str(row))
                     continue

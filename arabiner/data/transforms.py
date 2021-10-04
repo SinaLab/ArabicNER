@@ -49,9 +49,8 @@ class BertSeqMultiLabelTransform:
 
     def one_hot(self, tags):
         labels = [self.vocab.tags.stoi[tag] for tag in tags]
-        labels = torch.LongTensor(labels)
-        y_onehot = torch.nn.functional.one_hot(labels, num_classes=len(self.vocab.tags))
-        y_onehot = y_onehot.sum(dim=0).float()
+        labels = torch.tensor(labels).unsqueeze(0)
+        y_onehot = torch.zeros(labels.size(0), len(self.vocab.tags)).scatter_(1, labels, 1.)
         return y_onehot
 
     def __call__(self, segment):
@@ -79,4 +78,4 @@ class BertSeqMultiLabelTransform:
         tags.insert(0, self.one_hot(["O"]))
         tags.append(self.one_hot(["O"]))
 
-        return torch.LongTensor(subwords), torch.stack(tags), torch.LongTensor(tokens), len(tokens)
+        return torch.LongTensor(subwords), torch.stack(tags).squeeze(1), torch.LongTensor(tokens), len(tokens)

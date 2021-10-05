@@ -10,6 +10,11 @@ from argparse import Namespace
 
 
 def logging_config(log_file=None):
+    """
+    Initialize custom logger
+    :param log_file: str - path to log file, full path
+    :return: None
+    """
     handlers = [logging.StreamHandler(sys.stdout)]
 
     if log_file:
@@ -26,6 +31,12 @@ def logging_config(log_file=None):
 
 
 def load_object(name, kwargs):
+    """
+    Load objects dynamically given the object name and its arguments
+    :param name: str - object name, class name or function name
+    :param kwargs: dict - keyword arguments
+    :return: object
+    """
     object_module, object_name = name.rsplit(".", 1)
     object_module = importlib.import_module(object_module)
     fn = getattr(object_module, object_name)(**kwargs)
@@ -33,6 +44,13 @@ def load_object(name, kwargs):
 
 
 def make_output_dirs(path, subdirs=[], overwrite=True):
+    """
+    Create root directory and any other sub-directories
+    :param path: str - root directory
+    :param subdirs: List[str] - list of sub-directories
+    :param overwrite: boolean - to overwrite the directory or not
+    :return: None
+    """
     if overwrite:
         shutil.rmtree(path, ignore_errors=True)
 
@@ -43,6 +61,13 @@ def make_output_dirs(path, subdirs=[], overwrite=True):
 
 
 def load_checkpoint(model_path):
+    """
+    Load model given the model path
+    :param model_path: str - path to model
+    :return: tagger - arabiner.trainers.BaseTrainer - the tagger model
+             tag_vocab - torchtext.vocab.Vocab - indexed tags
+             train_config - argparse.Namespace - training configurations
+    """
     with open(os.path.join(model_path, "tag_vocab.pkl"), "rb") as fh:
         tag_vocab = pickle.load(fh)
 

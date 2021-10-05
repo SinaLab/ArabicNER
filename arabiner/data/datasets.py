@@ -23,8 +23,8 @@ class Token:
         Token text represenation
         :return: str
         """
-        gold_tags = "\t".join(self.gold_tag)
-        pred_tags = "\t".join([pred_tag["tag"] for pred_tag in self.pred_tag])
+        gold_tags = "|".join(self.gold_tag)
+        pred_tags = "|".join([pred_tag["tag"] for pred_tag in self.pred_tag])
 
         if self.gold_tag:
             r = f"{self.text}\t{gold_tags}\t{pred_tags}"

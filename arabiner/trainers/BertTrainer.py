@@ -1,7 +1,6 @@
 import logging
 import torch
 import numpy as np
-from arabiner.data.datasets import Token
 from arabiner.trainers import BaseTrainer
 from arabiner.utils.metrics import compute_metrics
 
@@ -20,7 +19,7 @@ class BertTrainer(BaseTrainer):
             self.current_epoch = epoch_index
             train_loss = 0
 
-            for batch_index, (_, gold_tags, _, logits, _) in enumerate(self.tag(
+            for batch_index, (_, gold_tags, _, _, logits) in enumerate(self.tag(
                 self.train_dataloader, is_train=True
             ), 1):
                 self.current_timestep += 1
@@ -42,8 +41,8 @@ class BertTrainer(BaseTrainer):
                     )
 
             train_loss /= num_train_batch
-            val_loss, val_golds, val_preds, tokens, valid_len = self.eval(self.val_dataloader)
-            segments = self.to_segments(val_golds, val_preds, tokens, valid_len)
+            val_preds, segments, valid_len, val_loss = self.eval(self.val_dataloader)
+            segments = self.to_segments(segments, val_preds, valid_len)
             val_metrics = compute_metrics(segments)
 
             epoch_summary_loss = {
@@ -69,10 +68,11 @@ class BertTrainer(BaseTrainer):
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 logger.info("Validation improved, evaluating test data...")
-                test_loss, test_golds, test_preds, tokens, valid_len = self.eval(self.test_dataloader)
-                segments = self.to_segments(test_golds, test_preds, tokens, valid_len)
+                test_preds, segments, valid_len, val_loss = self.eval(self.test_dataloader)
+                segments = self.to_segments(segments, test_preds, valid_len)
                 self.segments_to_file(segments)
                 test_metrics = compute_metrics(segments)
+
                 epoch_summary_loss["test_loss"] = test_loss
                 epoch_summary_metrics["test_micro_f1"] = test_metrics.micro_f1
                 epoch_summary_metrics["test_precision"] = test_metrics.precision
@@ -91,73 +91,53 @@ class BertTrainer(BaseTrainer):
             self.summary_writer.add_scalars("Loss", epoch_summary_loss, global_step=self.current_timestep)
             self.summary_writer.add_scalars("Metrics", epoch_summary_metrics, global_step=self.current_timestep)
 
-    def tag(self, dataloader, is_train=True):
-        for subwords, gold_tags, tokens, valid_len in dataloader:
-            self.model.train(is_train)
-
-            if torch.cuda.is_available():
-                subwords = subwords.cuda()
-                gold_tags = gold_tags.cuda()
-
-            if is_train:
-                self.optimizer.zero_grad()
-                logits = self.model(subwords)
-            else:
-                with torch.no_grad():
-                    logits = self.model(subwords)
-
-            yield subwords, gold_tags, tokens, logits, valid_len
-
     def eval(self, dataloader):
-        golds, preds, tokens, valid_lens = list(), list(), list(), list()
+        golds, preds, segments, valid_lens = list(), list(), list(), list()
         loss = 0
 
-        for _, gold_tags, batch_tokens, logits, valid_len in self.tag(
+        for _, gold_tags, tokens, valid_len, logits in self.tag(
             dataloader, is_train=False
         ):
             loss += self.loss(logits.view(-1, logits.shape[-1]), gold_tags.view(-1))
-            golds += gold_tags.detach().cpu().numpy().tolist()
             preds += torch.argmax(logits, dim=2).detach().cpu().numpy().tolist()
-            tokens += batch_tokens.detach().cpu().numpy().tolist()
+            segments += tokens
             valid_lens += list(valid_len)
 
         loss /= len(dataloader)
 
-        return loss.item(), golds, preds, tokens, valid_lens
+        return preds, segments, valid_lens, loss.item()
 
     def infer(self, dataloader, vocab):
-        golds, preds, tokens, valid_lens = list(), list(), list(), list()
+        golds, preds, segments, valid_lens = list(), list(), list(), list()
 
-        for _, gold_tags, batch_tokens, logits, valid_len in self.tag(
+        for _, gold_tags, tokens, valid_len, logits in self.tag(
             dataloader, is_train=False
         ):
-            golds += gold_tags.detach().cpu().numpy().tolist()
             preds += torch.argmax(logits, dim=2).detach().cpu().numpy().tolist()
-            tokens += batch_tokens.detach().cpu().numpy().tolist()
+            segments += tokens
             valid_lens += list(valid_len)
 
-        segments = self.to_segments(golds, preds, tokens, valid_lens, vocab=vocab)
+        segments = self.to_segments(segments, preds, valid_lens, vocab=vocab)
         return segments
 
-    def to_segments(self, golds, preds, text, valid_lens, vocab=None):
+    def to_segments(self, segments, preds, valid_lens, vocab=None):
         if vocab is None:
             vocab = self.vocab
 
-        segments = list()
+        tagged_segments = list()
         unk_id = vocab.tokens.stoi["UNK"]
 
-        for gold, pred, tokens, valid_len in zip(golds, preds, text, valid_lens):
+        for segment, pred, valid_len in zip(segments, preds, valid_lens):
+            tagged_segment = list()
             # First, the token at 0th index [CLS] and token at nth index [SEP]
-            gold = gold[1:valid_len-1]
             pred = pred[1:valid_len-1]
-            tokens = tokens[1:valid_len-1]
+            segment = segment[1:valid_len-1]
 
-            segment = [Token(
-                text=vocab.tokens.itos[t],
-                pred_tag=vocab.tags.itos[p],
-                gold_tag=vocab.tags.itos[g])
-                for t, p, g in zip(tokens, pred, gold) if t != unk_id]
+            for i, token in enumerate(segment):
+                if vocab.tokens.stoi[token.text] != unk_id:
+                    token.pred_tag = [{"tag": vocab.tags.itos[pred[i]]}]
+                    tagged_segment.append(token)
 
-            segments.append(segment)
+            tagged_segments.append(tagged_segment)
 
-        return segments
+        return tagged_segments

@@ -1,4 +1,3 @@
-import torch
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 from arabiner.data.transforms import BertSeqTransform, BertSeqMultiLabelTransform
@@ -24,10 +23,13 @@ class Token:
         Token text represenation
         :return: str
         """
+        gold_tags = "\t".join(self.gold_tag)
+        pred_tags = "\t".join([pred_tag["tag"] for pred_tag in self.pred_tag])
+
         if self.gold_tag:
-            r = f"{self.text}\t{self.gold_tag}\t{self.pred_tag}"
+            r = f"{self.text}\t{gold_tags}\t{pred_tags}"
         else:
-            r = f"{self.text}\t{self.pred_tag}"
+            r = f"{self.text}\t{pred_tags}"
 
         return r
 
@@ -74,7 +76,6 @@ class DefaultDataset(Dataset):
         tags = pad_sequence(
             tags, batch_first=True, padding_value=self.vocab.tags.stoi["O"]
         )
-        tokens = pad_sequence(tokens, batch_first=True, padding_value=0)
         return subwords, tags, tokens, valid_len
 
 
@@ -117,6 +118,6 @@ class MultiLabelDataset(Dataset):
         # subwords and tokens are padded with zeros
         # tags are padding with the index of the O tag
         subwords = pad_sequence(subwords, batch_first=True, padding_value=0)
-        tags = pad_sequence(tags, batch_first=True, padding_value=self.vocab.tags.stoi["O"])
-        tokens = pad_sequence(tokens, batch_first=True, padding_value=0)
+        tags = pad_sequence(tags, batch_first=True, padding_value=0)
+
         return subwords, tags, tokens, valid_len

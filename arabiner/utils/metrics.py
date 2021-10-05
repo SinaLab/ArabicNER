@@ -15,11 +15,11 @@ def compute_multi_label_metrics(segments):
     return None
 
 
-def compute_metrics(segments):
-    y = [[token.gold_tag for token in segment] for segment in segments]
-    y_hat = [[token.pred_tag for token in segment] for segment in segments]
+def compute_single_label_metrics(segments):
+    y = [[token.gold_tag[0] for token in segment] for segment in segments]
+    y_hat = [[token.pred_tag[0]["tag"] for token in segment] for segment in segments]
 
-    logging.info("\n"+classification_report(y, y_hat))
+    logging.info("\n" + classification_report(y, y_hat))
 
     metrics = {
         "micro_f1": f1_score(y, y_hat, average="micro"),
@@ -31,3 +31,13 @@ def compute_metrics(segments):
     }
 
     return SimpleNamespace(**metrics)
+
+
+def compute_metrics(segments, multi_label=False):
+    if multi_label:
+        metric = compute_multi_label_metrics(segments)
+    else:
+        metric = compute_single_label_metrics(segments)
+
+    return metric
+

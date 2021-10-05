@@ -55,7 +55,7 @@ def main(args):
 
     # Print results
     for segment in segments:
-        s = [f"{token.text} ({token.pred_tag})" for token in segment]
+        s = [f"{token.text} ({' '.join([t['tag'] for t in token.pred_tag])})" for token in segment]
         print(" ".join(s))
 
     return

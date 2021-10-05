@@ -69,7 +69,7 @@ class BertMultiLabelTrainer(BaseTrainer):
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 logger.info("Validation improved, evaluating test data...")
-                test_preds, segments, valid_len, val_loss = self.eval(self.test_dataloader)
+                test_preds, segments, valid_len, test_loss = self.eval(self.test_dataloader)
                 segments = self.to_segments(segments, test_preds, valid_len)
                 self.segments_to_file(segments)
                 test_metrics = compute_metrics(segments, multi_label=True)
@@ -140,14 +140,13 @@ class BertMultiLabelTrainer(BaseTrainer):
 
                 if vocab.tokens.stoi[token.text] != unk_id:
                     token.pred_tag = [
-                        {"tag": vocab.tags.itos[tag],
-                         "score": score}
+                        {
+                            "tag": vocab.tags.itos[tag],
+                            "score": score
+                        }
                         for tag, score in zip(tag_ids, scores)
                         if score > 0.5
-                    ]
-
-                    if not token.pred_tag:
-                        token.pred_tag = [{"tag": vocab.tags.itos[tag_ids[0]], "score": scores[0]}]
+                    ] or [{"tag": vocab.tags.itos[tag_ids[0]], "score": scores[0]}]
 
                     tagged_segment.append(token)
 

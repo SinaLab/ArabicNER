@@ -4,6 +4,7 @@ from collections import Counter, namedtuple
 import logging
 import itertools
 from arabiner.utils.helpers import load_object
+from arabiner.data.datasets import Token
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,9 @@ def conll_to_segments(filename):
                 segments.append(segment)
                 segment = list()
             else:
-                segment.append(tuple(token.split()))
+                parts = token.split()
+                token = Token(text=parts[0], gold_tag=parts[1:])
+                segment.append(token)
 
         segments.append(segment)
 
@@ -47,8 +50,8 @@ def parse_conll_files(data_paths):
     for data_path in data_paths:
         dataset = conll_to_segments(data_path)
         datasets.append(dataset)
-        tokens += [token[0] for segment in dataset for token in segment]
-        tags += [token[1:] for segment in dataset for token in segment]
+        tokens += [token.text for segment in dataset for token in segment]
+        tags += [token.gold_tag for segment in dataset for token in segment]
 
     # Flatten list of tags
     tags = list(itertools.chain(*tags))
@@ -63,8 +66,8 @@ def text2segments(text):
     Convert text to a datasets and index the tokens
     """
     segments = text.split(".")
-    dataset = [[(token, "O") for token in segment.split()] for segment in segments]
-    tokens = [token[0] for segment in dataset for token in segment]
+    dataset = [[Token(text=token, gold_tag=["O"]) for token in segment.split()] for segment in segments]
+    tokens = [token.text for segment in dataset for token in segment]
 
     # Generate vocabs for tags and tokens
     vocab = Vocab(Counter(tokens))

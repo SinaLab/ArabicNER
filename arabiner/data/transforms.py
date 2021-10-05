@@ -2,6 +2,7 @@ import torch
 from transformers import BertTokenizer
 from functools import partial
 import logging
+import arabiner
 
 logger = logging.getLogger(__name__)
 
@@ -18,23 +19,24 @@ class BertSeqTransform:
 
     def __call__(self, segment):
         subwords, tags, tokens = list(), list(), list()
+        unk_token = arabiner.data.datasets.Token(text="UNK")
 
-        for token, tag in segment:
-            token_subwords = self.encoder(token)[1:-1]
+        for token in segment:
+            token_subwords = self.encoder(token.text)[1:-1]
             subwords += token_subwords
-            tags += [self.vocab.tags.stoi[tag]] + [self.vocab.tags.stoi["O"]] * (len(token_subwords) - 1)
-            tokens += [self.vocab.tokens.stoi[token]] + [self.vocab.tokens.stoi["UNK"]] * (len(token_subwords) - 1)
+            tags += [self.vocab.tags.stoi[token.gold_tag[0]]] + [self.vocab.tags.stoi["O"]] * (len(token_subwords) - 1)
+            tokens += [token] + [unk_token] * (len(token_subwords) - 1)
 
         subwords.insert(0, self.tokenizer.cls_token_id)
         subwords.append(self.tokenizer.sep_token_id)
 
-        tokens.insert(0, self.tokenizer.cls_token_id)
-        tokens.append(self.tokenizer.sep_token_id)
-
         tags.insert(0, self.vocab.tags.stoi["O"])
         tags.append(self.vocab.tags.stoi["O"])
 
-        return torch.LongTensor(subwords), torch.LongTensor(tags), torch.LongTensor(tokens), len(tokens)
+        tokens.insert(0, unk_token)
+        tokens.append(unk_token)
+
+        return torch.LongTensor(subwords), torch.LongTensor(tags), tokens, len(tokens)
 
 
 class BertSeqMultiLabelTransform:
@@ -55,27 +57,27 @@ class BertSeqMultiLabelTransform:
 
     def __call__(self, segment):
         subwords, tags, tokens = list(), list(), list()
+        unk_token = arabiner.data.datasets.Token(text="UNK")
 
         for token in segment:
-            token, tag = token[0], token[1:]
-            token_subwords = self.encoder(token)[1:-1]
+            token_subwords = self.encoder(token.text)[1:-1]
             subwords += token_subwords
 
             # List of tags for the first subword
-            tags.append(self.one_hot(tag))
+            tags.append(self.one_hot(token.gold_tag))
 
             # List of "O" tags for the remaining subwords
             tags += [self.one_hot(["O"])] * (len(token_subwords) - 1)
 
-            tokens += [self.vocab.tokens.stoi[token]] + [self.vocab.tokens.stoi["UNK"]] * (len(token_subwords) - 1)
+            tokens += [token] + [unk_token] * (len(token_subwords) - 1)
 
         subwords.insert(0, self.tokenizer.cls_token_id)
         subwords.append(self.tokenizer.sep_token_id)
 
-        tokens.insert(0, self.tokenizer.cls_token_id)
-        tokens.append(self.tokenizer.sep_token_id)
-
         tags.insert(0, self.one_hot(["O"]))
         tags.append(self.one_hot(["O"]))
 
-        return torch.LongTensor(subwords), torch.stack(tags).squeeze(1), torch.LongTensor(tokens), len(tokens)
+        tokens.insert(0, unk_token)
+        tokens.append(unk_token)
+
+        return torch.LongTensor(subwords), torch.stack(tags).squeeze(1), tokens, len(tokens)

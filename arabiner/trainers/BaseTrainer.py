@@ -38,6 +38,31 @@ class BaseTrainer:
         self.current_epoch = 0
         self.vocab = vocab
 
+    def tag(self, dataloader, is_train=True):
+        for subwords, gold_tags, tokens, valid_len in dataloader:
+            self.model.train(is_train)
+
+            if torch.cuda.is_available():
+                subwords = subwords.cuda()
+                gold_tags = gold_tags.cuda()
+
+            if is_train:
+                self.optimizer.zero_grad()
+                logits = self.model(subwords)
+            else:
+                with torch.no_grad():
+                    logits = self.model(subwords)
+
+            yield subwords, gold_tags, tokens, valid_len, logits
+
+    def segments_to_file(self, segments):
+        filename = os.path.join(self.output_path, "predictions.txt")
+        with open(filename, "w") as fh:
+            results = "\n\n".join(["\n".join([t.__str__() for t in segment]) for segment in segments])
+            fh.write("Token\tGold Tag\tPredicted Tag\n")
+            fh.write(results)
+            logging.info("Predictions written to %s", filename)
+
     def save(self):
         filename = os.path.join(
             self.output_path,
@@ -61,11 +86,3 @@ class BaseTrainer:
         logger.info("Loading checkpoint %s", checkpoint_path)
         checkpoint = torch.load(checkpoint_path)
         self.model.load_state_dict(checkpoint["model"])
-
-    def segments_to_file(self, segments):
-        filename = os.path.join(self.output_path, "predictions.txt")
-        with open(filename, "w") as fh:
-            results = "\n\n".join(["\n".join([t.__str__() for t in segment]) for segment in segments])
-            fh.write("Token\tGold Tag\tPredicted Tag\n")
-            fh.write(results)
-            logging.info("Predictions written to %s", filename)

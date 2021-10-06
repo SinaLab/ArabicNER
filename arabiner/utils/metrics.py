@@ -22,7 +22,7 @@ def compute_multi_label_metrics(segments):
     max_tags = max(len(token.gold_tag) for segment in segments for token in segment)
     y = [[] for _ in range(max_tags)]
     y_hat = [[] for _ in range(max_tags)]
-    metrics = []
+    label_metrics = []
 
     for i in range(max_tags):
         for tokens in segments:
@@ -32,21 +32,18 @@ def compute_multi_label_metrics(segments):
             for token in tokens:
                 preds = [t["tag"] for t in token.pred_tag]
                 truth = [t for t in token.gold_tag]
+                truth += ["O"] * (max_tags - len(truth))
 
-                if len(truth) > i:
-                    segment_gold.append(truth[i])
-                    segment_pred.append(truth[i] if truth[i] in preds else "O")
-                else:
-                    segment_gold.append("O")
-                    segment_pred.append("O")
+                segment_gold.append(truth[i])
+                segment_pred.append(truth[i] if truth[i] in preds else "O")
 
             y[i].append(segment_gold)
             y_hat[i].append(segment_pred)
 
         logging.info("Classification report for entity at position %d", i)
-        logging.info(classification_report(y[i], y_hat[i]))
+        logging.info("\n" + classification_report(y[i], y_hat[i]))
 
-        metrics.append({
+        label_metrics.append({
             "micro_f1": f1_score(y[i], y_hat[i], average="micro"),
             "macro_f1": f1_score(y[i], y_hat[i], average="macro"),
             "weights_f1": f1_score(y[i], y_hat[i], average="weighted"),
@@ -55,18 +52,15 @@ def compute_multi_label_metrics(segments):
             "accuracy": accuracy_score(y[i], y_hat[i]),
         })
 
-    agg_metrics = {
-        "micro_f1": np.mean([m["micro_f1"] for m in metrics]),
-        "macro_f1": np.mean([m["macro_f1"] for m in metrics]),
-        "weights_f1": np.mean([m["weights_f1"] for m in metrics]),
-        "precision": np.mean([m["precision"] for m in metrics]),
-        "recall": np.mean([m["recall"] for m in metrics]),
-        "accuracy": np.mean([m["accuracy"] for m in metrics]),
+    # Average metrics across all labels
+    metrics = {
+        k: np.mean([m[k] for m in label_metrics])
+        for k in label_metrics[0].keys()
     }
 
-    agg_metrics = SimpleNamespace(**agg_metrics)
+    metrics = SimpleNamespace(**metrics)
 
-    return agg_metrics
+    return metrics
 
 
 def compute_single_label_metrics(segments):

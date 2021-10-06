@@ -10,6 +10,13 @@ logger = logging.getLogger(__name__)
 
 
 def to_conll_format(input_files, output_path, multi_label=False):
+    """
+    Parse data files and convert them into CoNLL format
+    :param input_files: List[str] - list of filenames
+    :param output_path: str - output path
+    :param multi_label: boolean - True to process data with mutli-class/multi-label
+    :return:
+    """
     for input_file in input_files:
         tokens = list()
         prev_sent_id = None

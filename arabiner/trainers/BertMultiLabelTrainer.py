@@ -113,11 +113,11 @@ class BertMultiLabelTrainer(BaseTrainer):
         for _, _, tokens, valid_len, logits in self.tag(
             dataloader, is_train=False
         ):
-            preds += torch.argmax(logits, dim=2).detach().cpu().numpy().tolist()
+            preds += torch.nn.Sigmoid()(logits).detach().cpu().numpy().tolist()
             segments += tokens
             valid_lens += list(valid_len)
 
-        segments = self.to_segments(preds, segments, valid_lens, vocab=vocab)
+        segments = self.to_segments(segments, preds, valid_lens, vocab=vocab)
         return segments
 
     def to_segments(self, segments, preds, valid_lens, vocab=None):

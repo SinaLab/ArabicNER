@@ -58,8 +58,6 @@ def main(args):
         s = [f"{token.text} ({' '.join([t['tag'] for t in token.pred_tag])})" for token in segment]
         print(" ".join(s))
 
-    return
-
 
 if __name__ == "__main__":
     main(parse_args())

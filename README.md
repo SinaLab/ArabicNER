@@ -25,9 +25,9 @@ Inference is the process of used a pre-trained model to perform tagging on a new
 need the following:
 
 #### Model
-The multi-class model can be downloaded [here](https://s3.console.aws.amazon.com/s3/object/arabiner?region=us-west-2&prefix=models/model_v3.zip). 
+The multi-class model can be downloaded [here](https://arabiner.s3.us-west-2.amazonaws.com/models/model_v3.zip). 
 
-The multi-class/multi-label model can be downloaded [here](https://www.dropbox.com/s/vcfxla5jbkw4uak/model_v2.zip?dl=0). 
+The multi-class/multi-label model can be downloaded [here](https://arabiner.s3.us-west-2.amazonaws.com/models/model_v4.zip). 
 
 Note that the model has the following structure and it is important to keep the same structure for inference to work.
 

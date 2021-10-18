@@ -6,6 +6,8 @@ import shutil
 import torch
 import pickle
 import json
+import random
+import numpy as np
 from argparse import Namespace
 
 
@@ -90,3 +92,22 @@ def load_checkpoint(model_path):
     tagger = load_object(train_config.trainer_config["fn"], train_config.trainer_config["kwargs"])
     tagger.load(os.path.join(model_path, "checkpoints"))
     return tagger, tag_vocab, train_config
+
+
+def set_seed(seed):
+    """
+    Set the seed for random intialization and set
+    CUDANN parameters to ensure determmihstic results across
+    multiple runs with the same seed
+
+    :param seed: int
+    """
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.enabled = False

@@ -25,7 +25,7 @@ Inference is the process of used a pre-trained model to perform tagging on a new
 need the following:
 
 #### Model
-The multi-class model can be downloaded [here](https://www.dropbox.com/s/lc22b3quo61xzx7/model_v1.zip?dl=0). 
+The multi-class model can be downloaded [here](https://s3.console.aws.amazon.com/s3/object/arabiner?region=us-west-2&prefix=models/model_v3.zip). 
 
 The multi-class/multi-label model can be downloaded [here](https://www.dropbox.com/s/vcfxla5jbkw4uak/model_v2.zip?dl=0). 
 

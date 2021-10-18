@@ -91,6 +91,13 @@ class BertMultiLabelTrainer(BaseTrainer):
                 )
 
                 self.save()
+            else:
+                self.patience -= 1
+
+            # No improvements, terminating early
+            if self.patience == 0:
+                logger.info("Early termination triggered")
+                break
 
             self.summary_writer.add_scalars("Loss", epoch_summary_loss, global_step=self.current_timestep)
             self.summary_writer.add_scalars("Metrics", epoch_summary_metrics, global_step=self.current_timestep)

@@ -6,7 +6,7 @@ import torch.utils.tensorboard
 from torchvision import *
 import pickle
 from arabiner.utils.data import get_dataloaders, parse_conll_files
-from arabiner.utils.helpers import logging_config, load_object, make_output_dirs
+from arabiner.utils.helpers import logging_config, load_object, make_output_dirs, set_seed
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +129,13 @@ def parse_args():
         help="Overwrite output directory",
     )
 
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=1,
+        help="Seed for random initialization",
+    )
+
     args = parser.parse_args()
 
     return args
@@ -140,6 +147,10 @@ def main(args):
         subdirs=("tensorboard", "checkpoints"),
         overwrite=args.overwrite,
     )
+
+    # Set the seed for randomization
+    set_seed(args.seed)
+
     logging_config(os.path.join(args.output_path, "train.log"))
     summary_writer = torch.utils.tensorboard.SummaryWriter(
         os.path.join(args.output_path, "tensorboard")
@@ -171,8 +182,6 @@ def main(args):
 
     if torch.cuda.is_available():
         model = model.cuda()
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = True
 
     args.optimizer["kwargs"]["params"] = model.parameters()
     optimizer = load_object(args.optimizer["fn"], args.optimizer["kwargs"])

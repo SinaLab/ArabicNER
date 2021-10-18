@@ -22,7 +22,8 @@ class BaseTrainer:
         summary_writer=None,
         output_path=None,
         vocab=None,
-        clip=5
+        clip=5,
+        patience=5
     ):
         self.model = model
         self.max_epochs = max_epochs
@@ -39,6 +40,7 @@ class BaseTrainer:
         self.current_epoch = 0
         self.vocab = vocab
         self.clip = clip
+        self.patience = patience
 
     def tag(self, dataloader, is_train=True):
         """

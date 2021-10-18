@@ -1,7 +1,6 @@
 import logging
 import torch
 import numpy as np
-from arabiner.data.datasets import Token
 from arabiner.trainers import BaseTrainer
 from arabiner.utils.metrics import compute_metrics
 
@@ -26,6 +25,10 @@ class BertMultiLabelTrainer(BaseTrainer):
                 self.current_timestep += 1
                 batch_loss = self.loss(logits, gold_tags)
                 batch_loss.backward()
+
+                # Avoid exploding gradient by doing gradient clipping
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.clip)
+
                 self.optimizer.step()
                 self.scheduler.step()
                 train_loss += batch_loss.item()
@@ -42,6 +45,8 @@ class BertMultiLabelTrainer(BaseTrainer):
                     )
 
             train_loss /= num_train_batch
+
+            logger.info("** Evaluating on validation dataset **")
             val_preds, segments, valid_len, val_loss = self.eval(self.val_dataloader)
             segments = self.to_segments(segments, val_preds, valid_len)
             val_metrics = compute_metrics(segments, multi_label=True)
@@ -56,7 +61,6 @@ class BertMultiLabelTrainer(BaseTrainer):
                 "val_recall": val_metrics.recall
             }
 
-            logger.info("Evaluating on validation dataset")
             logger.info(
                 "Epoch %d | Timestep %d | Train Loss %f | Val Loss %f | F1 %f",
                 epoch_index,
@@ -68,7 +72,7 @@ class BertMultiLabelTrainer(BaseTrainer):
 
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
-                logger.info("Validation improved, evaluating test data...")
+                logger.info("** Validation improved, evaluating test data **")
                 test_preds, segments, valid_len, test_loss = self.eval(self.test_dataloader)
                 segments = self.to_segments(segments, test_preds, valid_len)
                 self.segments_to_file(segments)

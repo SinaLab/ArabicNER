@@ -52,6 +52,14 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--gpus",
+        type=int,
+        nargs="+",
+        default=[0],
+        help="GPU IDs to train on",
+    )
+
+    parser.add_argument(
         "--log_interval",
         type=int,
         default=10,
@@ -136,6 +144,7 @@ def main(args):
     summary_writer = torch.utils.tensorboard.SummaryWriter(
         os.path.join(args.output_path, "tensorboard")
     )
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join([str(gpu) for gpu in args.gpus])
     args_file = os.path.join(args.output_path, "args.json")
 
     with open(args_file, "w") as fh:
@@ -158,9 +167,12 @@ def main(args):
     # Load BERT tagger
     args.network_config["kwargs"]["num_labels"] = len(vocab.tags)
     model = load_object(args.network_config["fn"], args.network_config["kwargs"])
+    model = torch.nn.DataParallel(model, device_ids=args.gpus)
 
     if torch.cuda.is_available():
         model = model.cuda()
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = True
 
     args.optimizer["kwargs"]["params"] = model.parameters()
     optimizer = load_object(args.optimizer["fn"], args.optimizer["kwargs"])

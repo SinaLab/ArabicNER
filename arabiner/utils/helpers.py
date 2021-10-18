@@ -79,6 +79,7 @@ def load_checkpoint(model_path):
     # Load BERT tagger
     train_config.network_config["kwargs"]["num_labels"] = len(tag_vocab)
     model = load_object(train_config.network_config["fn"], train_config.network_config["kwargs"])
+    model = torch.nn.DataParallel(model)
 
     if torch.cuda.is_available():
         model = model.cuda()

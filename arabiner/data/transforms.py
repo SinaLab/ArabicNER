@@ -15,6 +15,7 @@ class BertSeqTransform:
             max_length=max_seq_len,
             truncation=True,
         )
+        self.max_seq_len = max_seq_len
         self.vocab = vocab
 
     def __call__(self, segment):
@@ -26,6 +27,14 @@ class BertSeqTransform:
             subwords += token_subwords
             tags += [self.vocab.tags.stoi[token.gold_tag[0]]] + [self.vocab.tags.stoi["O"]] * (len(token_subwords) - 1)
             tokens += [token] + [unk_token] * (len(token_subwords) - 1)
+
+        # Truncate to max_seq_len
+        if len(subwords) > self.max_seq_len - 2:
+            text = " ".join([t.text for t in tokens if t.text != "UNK"])
+            logger.info("Truncating the sequence %s to %d", text, self.max_seq_len - 2)
+            subwords = subwords[:self.max_seq_len - 2]
+            tags = tags[:self.max_seq_len - 2]
+            tokens = tokens[:self.max_seq_len - 2]
 
         subwords.insert(0, self.tokenizer.cls_token_id)
         subwords.append(self.tokenizer.sep_token_id)
@@ -47,6 +56,7 @@ class BertSeqMultiLabelTransform:
             max_length=max_seq_len,
             truncation=True,
         )
+        self.max_seq_len = max_seq_len
         self.vocab = vocab
 
     def one_hot(self, tags):
@@ -70,6 +80,14 @@ class BertSeqMultiLabelTransform:
             tags += [self.one_hot(["O"])] * (len(token_subwords) - 1)
 
             tokens += [token] + [unk_token] * (len(token_subwords) - 1)
+
+        # Truncate to max_seq_len
+        if len(subwords) > self.max_seq_len - 2:
+            text = " ".join([t.text for t in tokens if t.text != "UNK"])
+            logger.info("Truncating the sequence %s to %d", text, self.max_seq_len - 2)
+            subwords = subwords[:self.max_seq_len - 2]
+            tags = tags[:self.max_seq_len - 2]
+            tokens = tokens[:self.max_seq_len - 2]
 
         subwords.insert(0, self.tokenizer.cls_token_id)
         subwords.append(self.tokenizer.sep_token_id)

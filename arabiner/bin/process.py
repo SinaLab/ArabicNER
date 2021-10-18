@@ -79,7 +79,7 @@ def train_dev_test_split(input_files, output_path, train_ratio, dev_ratio):
         filename = os.path.join(output_path, filenames[i])
 
         with open(filename, "w") as fh:
-            text = "\n\n".join(["\n".join([" ".join(token) for token in segment]) for segment in datasets[i]])
+            text = "\n\n".join(["\n".join([f"{token.text} {' '.join(token.gold_tag)}" for token in segment]) for segment in datasets[i]])
             fh.write(text)
             logging.info("Output file %s", filename)
 

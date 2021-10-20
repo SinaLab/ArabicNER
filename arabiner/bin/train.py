@@ -205,8 +205,7 @@ def main(args):
         "test_dataloader": test_dataloader,
         "log_interval": args.log_interval,
         "summary_writer": summary_writer,
-        "output_path": args.output_path,
-        "vocab": vocab
+        "output_path": args.output_path
     })
 
     trainer = load_object(args.trainer_config["fn"], args.trainer_config["kwargs"])

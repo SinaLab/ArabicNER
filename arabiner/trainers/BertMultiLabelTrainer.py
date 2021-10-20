@@ -1,8 +1,9 @@
+import os
 import logging
 import torch
 import numpy as np
 from arabiner.trainers import BaseTrainer
-from arabiner.utils.metrics import compute_metrics
+from arabiner.utils.metrics import compute_multi_label_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +49,7 @@ class BertMultiLabelTrainer(BaseTrainer):
 
             logger.info("** Evaluating on validation dataset **")
             val_preds, segments, valid_len, val_loss = self.eval(self.val_dataloader)
-            segments = self.to_segments(segments, val_preds, valid_len)
-            val_metrics = compute_metrics(segments, multi_label=True)
+            val_metrics = compute_multi_label_metrics(segments)
 
             epoch_summary_loss = {
                 "train_loss": train_loss,
@@ -74,9 +74,8 @@ class BertMultiLabelTrainer(BaseTrainer):
                 best_val_loss = val_loss
                 logger.info("** Validation improved, evaluating test data **")
                 test_preds, segments, valid_len, test_loss = self.eval(self.test_dataloader)
-                segments = self.to_segments(segments, test_preds, valid_len)
-                self.segments_to_file(segments)
-                test_metrics = compute_metrics(segments, multi_label=True)
+                self.segments_to_file(segments, os.path.join(self.output_path, "predictions.txt"))
+                test_metrics = compute_multi_label_metrics(segments, multi_label=True)
                 epoch_summary_loss["test_loss"] = test_loss
                 epoch_summary_metrics["test_micro_f1"] = test_metrics.micro_f1
                 epoch_summary_metrics["test_precision"] = test_metrics.precision
@@ -116,9 +115,12 @@ class BertMultiLabelTrainer(BaseTrainer):
 
         loss /= len(dataloader)
 
+        # Update segments, attach predicted tags to each token
+        segments = self.to_segments(segments, preds, valid_lens, dataloader.dataset.vocab)
+
         return preds, segments, valid_lens, loss.item()
 
-    def infer(self, dataloader, vocab):
+    def infer(self, dataloader):
         preds, segments, valid_lens = list(), list(), list()
 
         for _, _, tokens, valid_len, logits in self.tag(
@@ -128,13 +130,10 @@ class BertMultiLabelTrainer(BaseTrainer):
             segments += tokens
             valid_lens += list(valid_len)
 
-        segments = self.to_segments(segments, preds, valid_lens, vocab=vocab)
+        segments = self.to_segments(segments, preds, valid_lens, dataloader.dataset.vocab)
         return segments
 
-    def to_segments(self, segments, preds, valid_lens, vocab=None):
-        if vocab is None:
-            vocab = self.vocab
-
+    def to_segments(self, segments, preds, valid_lens, vocab):
         tagged_segments = list()
         unk_id = vocab.tokens.stoi["UNK"]
 

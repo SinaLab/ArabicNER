@@ -42,21 +42,32 @@ def compute_multi_label_metrics(segments):
             y_hat[i].append(segment_pred)
 
         logging.info("Classification report for entity at position %d", i)
-        logging.info("\n" + classification_report(y[i], y_hat[i], scheme=IOB2, mode='strict'))
+        logging.info(
+            "\n" + classification_report(y[i], y_hat[i], scheme=IOB2, mode="strict")
+        )
 
-        label_metrics.append({
-            "micro_f1": f1_score(y[i], y_hat[i], average="micro", scheme=IOB2, mode='strict'),
-            "macro_f1": f1_score(y[i], y_hat[i], average="macro", scheme=IOB2, mode='strict'),
-            "weights_f1": f1_score(y[i], y_hat[i], average="weighted", scheme=IOB2, mode='strict'),
-            "precision": precision_score(y[i], y_hat[i], scheme=IOB2, mode='strict'),
-            "recall": recall_score(y[i], y_hat[i], scheme=IOB2, mode='strict'),
-            "accuracy": accuracy_score(y[i], y_hat[i]),
-        })
+        label_metrics.append(
+            {
+                "micro_f1": f1_score(
+                    y[i], y_hat[i], average="micro", scheme=IOB2, mode="strict"
+                ),
+                "macro_f1": f1_score(
+                    y[i], y_hat[i], average="macro", scheme=IOB2, mode="strict"
+                ),
+                "weights_f1": f1_score(
+                    y[i], y_hat[i], average="weighted", scheme=IOB2, mode="strict"
+                ),
+                "precision": precision_score(
+                    y[i], y_hat[i], scheme=IOB2, mode="strict"
+                ),
+                "recall": recall_score(y[i], y_hat[i], scheme=IOB2, mode="strict"),
+                "accuracy": accuracy_score(y[i], y_hat[i]),
+            }
+        )
 
     # Average metrics across all labels
     metrics = {
-        k: np.mean([m[k] for m in label_metrics])
-        for k in label_metrics[0].keys()
+        k: np.mean([m[k] for m in label_metrics]) for k in label_metrics[0].keys()
     }
 
     metrics = SimpleNamespace(**metrics)
@@ -73,31 +84,17 @@ def compute_single_label_metrics(segments):
     y = [[token.gold_tag[0] for token in segment] for segment in segments]
     y_hat = [[token.pred_tag[0]["tag"] for token in segment] for segment in segments]
 
-    logging.info("\n" + classification_report(y, y_hat, scheme=IOB2, mode='strict'))
+    logging.info("\n" + classification_report(y, y_hat, scheme=IOB2, mode="strict"))
 
     metrics = {
-        "micro_f1": f1_score(y, y_hat, average="micro", scheme=IOB2, mode='strict'),
-        "macro_f1": f1_score(y, y_hat, average="macro", scheme=IOB2, mode='strict'),
-        "weights_f1": f1_score(y, y_hat, average="weighted", scheme=IOB2, mode='strict'),
-        "precision": precision_score(y, y_hat, scheme=IOB2, mode='strict'),
-        "recall": recall_score(y, y_hat, scheme=IOB2, mode='strict'),
+        "micro_f1": f1_score(y, y_hat, average="micro", scheme=IOB2, mode="strict"),
+        "macro_f1": f1_score(y, y_hat, average="macro", scheme=IOB2, mode="strict"),
+        "weights_f1": f1_score(
+            y, y_hat, average="weighted", scheme=IOB2, mode="strict"
+        ),
+        "precision": precision_score(y, y_hat, scheme=IOB2, mode="strict"),
+        "recall": recall_score(y, y_hat, scheme=IOB2, mode="strict"),
         "accuracy": accuracy_score(y, y_hat),
     }
 
     return SimpleNamespace(**metrics)
-
-
-def compute_metrics(segments, multi_label=False):
-    """
-    Compute metrics on the given segments
-    :param segments: List[List[arabiner.data.dataset.Token]] - list of segments
-    :param multi_label: boolean - True = multi-class/multi-label, False = multi-class/single label
-    :return: metric - SimpleNamespace - F1/micro/macro/weights, recall, precision, accuracy
-    """
-    if multi_label:
-        metric = compute_multi_label_metrics(segments)
-    else:
-        metric = compute_single_label_metrics(segments)
-
-    return metric
-

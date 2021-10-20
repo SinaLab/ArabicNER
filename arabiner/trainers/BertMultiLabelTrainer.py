@@ -75,7 +75,7 @@ class BertMultiLabelTrainer(BaseTrainer):
                 logger.info("** Validation improved, evaluating test data **")
                 test_preds, segments, valid_len, test_loss = self.eval(self.test_dataloader)
                 self.segments_to_file(segments, os.path.join(self.output_path, "predictions.txt"))
-                test_metrics = compute_multi_label_metrics(segments, multi_label=True)
+                test_metrics = compute_multi_label_metrics(segments)
                 epoch_summary_loss["test_loss"] = test_loss
                 epoch_summary_metrics["test_micro_f1"] = test_metrics.micro_f1
                 epoch_summary_metrics["test_precision"] = test_metrics.precision

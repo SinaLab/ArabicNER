@@ -21,7 +21,6 @@ class BaseTrainer:
         log_interval=10,
         summary_writer=None,
         output_path=None,
-        vocab=None,
         clip=5,
         patience=5
     ):
@@ -38,7 +37,6 @@ class BaseTrainer:
         self.output_path = output_path
         self.current_timestep = 0
         self.current_epoch = 0
-        self.vocab = vocab
         self.clip = clip
         self.patience = patience
 
@@ -70,13 +68,13 @@ class BaseTrainer:
 
             yield subwords, gold_tags, tokens, valid_len, logits
 
-    def segments_to_file(self, segments):
+    def segments_to_file(self, segments, filename):
         """
         Write segments to file
         :param segments: [List[arabiner.data.dataset.Token]] - list of list of tokens
+        :param filename: str - output filename
         :return: None
         """
-        filename = os.path.join(self.output_path, "predictions.txt")
         with open(filename, "w") as fh:
             results = "\n\n".join(["\n".join([t.__str__() for t in segment]) for segment in segments])
             fh.write("Token\tGold Tag\tPredicted Tag\n")

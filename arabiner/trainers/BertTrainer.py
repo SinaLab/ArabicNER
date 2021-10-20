@@ -1,8 +1,9 @@
+import os
 import logging
 import torch
 import numpy as np
 from arabiner.trainers import BaseTrainer
-from arabiner.utils.metrics import compute_metrics
+from arabiner.utils.metrics import compute_single_label_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +49,7 @@ class BertTrainer(BaseTrainer):
 
             logger.info("** Evaluating on validation dataset **")
             val_preds, segments, valid_len, val_loss = self.eval(self.val_dataloader)
-            segments = self.to_segments(segments, val_preds, valid_len)
-            val_metrics = compute_metrics(segments)
+            val_metrics = compute_single_label_metrics(segments)
 
             epoch_summary_loss = {
                 "train_loss": train_loss,
@@ -74,9 +74,8 @@ class BertTrainer(BaseTrainer):
                 best_val_loss = val_loss
                 logger.info("** Validation improved, evaluating test data **")
                 test_preds, segments, valid_len, test_loss = self.eval(self.test_dataloader)
-                segments = self.to_segments(segments, test_preds, valid_len)
-                self.segments_to_file(segments)
-                test_metrics = compute_metrics(segments)
+                self.segments_to_file(segments, os.path.join(self.output_path, "predictions.txt"))
+                test_metrics = compute_single_label_metrics(segments)
 
                 epoch_summary_loss["test_loss"] = test_loss
                 epoch_summary_metrics["test_micro_f1"] = test_metrics.micro_f1
@@ -117,9 +116,12 @@ class BertTrainer(BaseTrainer):
 
         loss /= len(dataloader)
 
+        # Update segments, attach predicted tags to each token
+        segments = self.to_segments(segments, preds, valid_lens, dataloader.dataset.vocab)
+
         return preds, segments, valid_lens, loss.item()
 
-    def infer(self, dataloader, vocab):
+    def infer(self, dataloader):
         golds, preds, segments, valid_lens = list(), list(), list(), list()
 
         for _, gold_tags, tokens, valid_len, logits in self.tag(
@@ -129,10 +131,10 @@ class BertTrainer(BaseTrainer):
             segments += tokens
             valid_lens += list(valid_len)
 
-        segments = self.to_segments(segments, preds, valid_lens, vocab=vocab)
+        segments = self.to_segments(segments, preds, valid_lens, dataloader.dataset.vocab)
         return segments
 
-    def to_segments(self, segments, preds, valid_lens, vocab=None):
+    def to_segments(self, segments, preds, valid_lens, vocab):
         if vocab is None:
             vocab = self.vocab
 

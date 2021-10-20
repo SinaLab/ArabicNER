@@ -43,19 +43,20 @@ def main(args):
     tagger, tag_vocab, train_config = load_checkpoint(args.model_path)
 
     # Convert text to a tagger dataset and index the tokens in args.text
-    dataset, vocab = text2segments(args.text)
+    dataset, token_vocab = text2segments(args.text)
+
     vocabs = namedtuple("Vocab", ["tags", "tokens"])
-    vocab = vocabs(tags=tag_vocab, tokens=vocab)
+    vocab = vocabs(tokens=token_vocab, tags=tag_vocab)
 
     # From the datasets generate the dataloaders
     dataloader = get_dataloaders((dataset,), vocab, train_config.data_config, batch_size=args.batch_size)[0]
 
     # Perform inference on the text and get back the tagged segments
-    segments = tagger.infer(dataloader, vocab=vocab)
+    segments = tagger.infer(dataloader)
 
     # Print results
     for segment in segments:
-        s = [f"{token.text} ({' '.join([t['tag'] for t in token.pred_tag])})" for token in segment]
+        s = [f"{token.text} ({'|'.join([t['tag'] for t in token.pred_tag])})" for token in segment]
         print(" ".join(s))
 
 

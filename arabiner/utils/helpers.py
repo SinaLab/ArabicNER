@@ -67,7 +67,7 @@ def load_checkpoint(model_path):
     Load model given the model path
     :param model_path: str - path to model
     :return: tagger - arabiner.trainers.BaseTrainer - the tagger model
-             tag_vocab - torchtext.vocab.Vocab - indexed tags
+             vocab - torchtext.vocab.Vocab - indexed tags
              train_config - argparse.Namespace - training configurations
     """
     with open(os.path.join(model_path, "tag_vocab.pkl"), "rb") as fh:
@@ -78,6 +78,9 @@ def load_checkpoint(model_path):
     with open(os.path.join(model_path, "args.json"), "r") as fh:
         train_config.__dict__ = json.load(fh)
 
+    # Initialize the loss function, not used for inference, but evaluation
+    loss = load_object(train_config.loss["fn"], train_config.loss["kwargs"])
+
     # Load BERT tagger
     train_config.network_config["kwargs"]["num_labels"] = len(tag_vocab)
     model = load_object(train_config.network_config["fn"], train_config.network_config["kwargs"])
@@ -86,8 +89,10 @@ def load_checkpoint(model_path):
     if torch.cuda.is_available():
         model = model.cuda()
 
-    # Load the tagger
+    # Update arguments for the tagger
+    # Attach the model, loss (used for evaluations cases)
     train_config.trainer_config["kwargs"]["model"] = model
+    train_config.trainer_config["kwargs"]["loss"] = loss
 
     tagger = load_object(train_config.trainer_config["fn"], train_config.trainer_config["kwargs"])
     tagger.load(os.path.join(model_path, "checkpoints"))

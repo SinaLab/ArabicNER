@@ -4,10 +4,6 @@ import argparse
 from collections import namedtuple
 from arabiner.utils.helpers import load_checkpoint, make_output_dirs, logging_config
 from arabiner.utils.data import get_dataloaders, parse_conll_files
-from arabiner.utils.metrics import (
-    compute_single_label_metrics,
-    compute_multi_label_metrics,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -67,14 +63,11 @@ def main(args):
 
     # From the datasets generate the dataloaders
     dataloaders = get_dataloaders(
-        datasets, vocab, train_config.data_config, batch_size=args.batch_size
+        datasets, vocab,
+        train_config.data_config,
+        batch_size=args.batch_size,
+        shuffle=[False] * len(datasets)
     )
-
-    # Metric function
-    if tagger.__class__.__name__ == "BertTrainer":
-        compute_metrics = compute_single_label_metrics
-    else:
-        compute_metrics = compute_multi_label_metrics
 
     # Evaluate the model on each dataloader
     for dataloader, input_file in zip(dataloaders, args.data_paths):
@@ -82,10 +75,6 @@ def main(args):
         predictions_file = os.path.join(args.output_path, f"predictions_{filename}")
         _, segments, _, _ = tagger.eval(dataloader)
         tagger.segments_to_file(segments, predictions_file)
-        compute_metrics(segments)
-
-        logger.info("Processed file %s", input_file)
-        logger.info("Output predictions %s", predictions_file)
 
 
 if __name__ == "__main__":

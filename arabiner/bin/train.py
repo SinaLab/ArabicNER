@@ -178,7 +178,7 @@ def main(args):
     # Load BERT tagger
     args.network_config["kwargs"]["num_labels"] = len(vocab.tags)
     model = load_object(args.network_config["fn"], args.network_config["kwargs"])
-    model = torch.nn.DataParallel(model, device_ids=args.gpus)
+    model = torch.nn.DataParallel(model, device_ids=range(len(args.gpus)))
 
     if torch.cuda.is_available():
         model = model.cuda()

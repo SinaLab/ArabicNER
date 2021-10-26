@@ -155,7 +155,7 @@ class BertMultiLabelTrainer(BaseTrainer):
                             "score": score
                         }
                         for tag, score in zip(tag_ids, scores)
-                        if score > 0.5
+                        if score > 0.5 and vocab.tags.itos[tag] != "O"
                     ] or [{"tag": vocab.tags.itos[tag_ids[0]], "score": scores[0]}]
 
                     tagged_segment.append(token)

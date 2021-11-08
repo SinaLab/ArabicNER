@@ -65,8 +65,7 @@ def text2segments(text):
     """
     Convert text to a datasets and index the tokens
     """
-    segments = text.split(".")
-    dataset = [[Token(text=token, gold_tag=["O"]) for token in segment.split()] for segment in segments]
+    dataset = [[Token(text=token, gold_tag=["O"]) for token in text.split()]]
     tokens = [token.text for segment in dataset for token in segment]
 
     # Generate vocabs for tags and tokens

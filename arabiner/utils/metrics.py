@@ -42,25 +42,15 @@ def compute_multi_label_metrics(segments):
             y_hat[i].append(segment_pred)
 
         logging.info("Classification report for entity at position %d", i)
-        logging.info(
-            "\n" + classification_report(y[i], y_hat[i], scheme=IOB2, mode="strict")
-        )
+        logging.info("\n" + classification_report(y[i], y_hat[i], scheme=IOB2))
 
         label_metrics.append(
             {
-                "micro_f1": f1_score(
-                    y[i], y_hat[i], average="micro", scheme=IOB2, mode="strict"
-                ),
-                "macro_f1": f1_score(
-                    y[i], y_hat[i], average="macro", scheme=IOB2, mode="strict"
-                ),
-                "weights_f1": f1_score(
-                    y[i], y_hat[i], average="weighted", scheme=IOB2, mode="strict"
-                ),
-                "precision": precision_score(
-                    y[i], y_hat[i], scheme=IOB2, mode="strict"
-                ),
-                "recall": recall_score(y[i], y_hat[i], scheme=IOB2, mode="strict"),
+                "micro_f1": f1_score(y[i], y_hat[i], average="micro", scheme=IOB2),
+                "macro_f1": f1_score(y[i], y_hat[i], average="macro", scheme=IOB2),
+                "weights_f1": f1_score(y[i], y_hat[i], average="weighted", scheme=IOB2),
+                "precision": precision_score(y[i], y_hat[i], scheme=IOB2),
+                "recall": recall_score(y[i], y_hat[i], scheme=IOB2),
                 "accuracy": accuracy_score(y[i], y_hat[i]),
             }
         )
@@ -84,16 +74,14 @@ def compute_single_label_metrics(segments):
     y = [[token.gold_tag[0] for token in segment] for segment in segments]
     y_hat = [[token.pred_tag[0]["tag"] for token in segment] for segment in segments]
 
-    logging.info("\n" + classification_report(y, y_hat, scheme=IOB2, mode="strict"))
+    logging.info("\n" + classification_report(y, y_hat, scheme=IOB2))
 
     metrics = {
-        "micro_f1": f1_score(y, y_hat, average="micro", scheme=IOB2, mode="strict"),
-        "macro_f1": f1_score(y, y_hat, average="macro", scheme=IOB2, mode="strict"),
-        "weights_f1": f1_score(
-            y, y_hat, average="weighted", scheme=IOB2, mode="strict"
-        ),
-        "precision": precision_score(y, y_hat, scheme=IOB2, mode="strict"),
-        "recall": recall_score(y, y_hat, scheme=IOB2, mode="strict"),
+        "micro_f1": f1_score(y, y_hat, average="micro", scheme=IOB2),
+        "macro_f1": f1_score(y, y_hat, average="macro", scheme=IOB2),
+        "weights_f1": f1_score(y, y_hat, average="weighted", scheme=IOB2),
+        "precision": precision_score(y, y_hat, scheme=IOB2),
+        "recall": recall_score(y, y_hat, scheme=IOB2),
         "accuracy": accuracy_score(y, y_hat),
     }
 

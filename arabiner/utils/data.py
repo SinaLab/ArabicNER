@@ -57,7 +57,9 @@ def parse_conll_files(data_paths):
     tags = list(itertools.chain(*tags))
 
     # Generate vocabs for tags and tokens
-    vocabs = vocabs(tokens=Vocab(Counter(tokens)), tags=Vocab(Counter(tags)))
+    vocabs = vocabs(
+        tokens=Vocab(Counter(tokens)),
+        tags=Vocab(Counter(tags), specials=["<start>", "<stop>", "<unk>", "<pad>"]))
     return tuple(datasets), vocabs
 
 

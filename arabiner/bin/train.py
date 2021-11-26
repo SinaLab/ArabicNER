@@ -177,6 +177,14 @@ def main(args):
 
     # Load BERT tagger
     args.network_config["kwargs"]["num_labels"] = len(vocab.tags)
+
+    # Pass start and stop tag for CRF
+    if "BertCrfSeqTagger" in args.network_config["fn"]:
+        args.network_config["kwargs"].update({
+            "start_label": vocab.tags.stoi["<start>"],
+            "stop_label": vocab.tags.stoi["<stop>"]
+        })
+
     model = load_object(args.network_config["fn"], args.network_config["kwargs"])
     model = torch.nn.DataParallel(model, device_ids=range(len(args.gpus)))
 

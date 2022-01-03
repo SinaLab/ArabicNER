@@ -175,8 +175,11 @@ def main(args):
         datasets, vocab, args.data_config, args.batch_size, args.num_workers
     )
 
-    # Load BERT tagger
-    args.network_config["kwargs"]["num_labels"] = len(vocab.tags)
+    if "Nested" in args.network_config["fn"]:
+        args.network_config["kwargs"]["num_labels"] = [len(v) for v in vocab.tags[1:]]
+    else:
+        args.network_config["kwargs"]["num_labels"] = len(vocab.tags[0])
+
     model = load_object(args.network_config["fn"], args.network_config["kwargs"])
     model = torch.nn.DataParallel(model, device_ids=range(len(args.gpus)))
 

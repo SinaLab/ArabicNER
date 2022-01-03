@@ -3,11 +3,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchcrf import CRF
 from transformers import BertModel
+from arabiner.nn import BaseModel
 
 
-class BertCrfSeqTagger(nn.Module):
+class BertCrfTagger(BaseModel):
     def __init__(self, bert_model, num_labels=2, dropout=0.1):
-        super().__init__()
+        super(BertCrfTagger).__init__()
 
         self.bert = BertModel.from_pretrained(bert_model)
         self.dropout = nn.Dropout(dropout)

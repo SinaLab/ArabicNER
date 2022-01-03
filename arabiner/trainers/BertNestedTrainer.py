@@ -3,12 +3,12 @@ import logging
 import torch
 import numpy as np
 from arabiner.trainers import BaseTrainer
-from arabiner.utils.metrics import compute_single_label_metrics
+from arabiner.utils.metrics import compute_nested_metrics
 
 logger = logging.getLogger(__name__)
 
 
-class BertCrfLayeredTrainer(BaseTrainer):
+class BertNestedTrainer(BaseTrainer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -20,19 +20,19 @@ class BertCrfLayeredTrainer(BaseTrainer):
             self.current_epoch = epoch_index
             train_loss = 0
 
-            for batch_index, (_, gold_tags, _, _, batch_loss, _) in enumerate(self.tag(
+            for batch_index, (_, _, _, _, _, batch_loss) in enumerate(self.tag(
                 self.train_dataloader, is_train=True
             ), 1):
                 self.current_timestep += 1
-                batch_loss = batch_loss.mean()
-                batch_loss.backward()
+                torch.autograd.backward(batch_loss)
 
                 # Avoid exploding gradient by doing gradient clipping
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.clip)
 
                 self.optimizer.step()
                 self.scheduler.step()
-                train_loss += batch_loss.item()
+                bs = sum(l.item() for l in batch_loss)
+                train_loss += bs
 
                 if self.current_timestep % self.log_interval == 0:
                     logger.info(
@@ -42,14 +42,14 @@ class BertCrfLayeredTrainer(BaseTrainer):
                         num_train_batch,
                         self.current_timestep,
                         self.optimizer.param_groups[0]['lr'],
-                        batch_loss.item()
+                        bs
                     )
 
             train_loss /= num_train_batch
 
             logger.info("** Evaluating on validation dataset **")
             val_preds, segments, valid_len, val_loss = self.eval(self.val_dataloader)
-            val_metrics = compute_single_label_metrics(segments)
+            val_metrics = compute_nested_metrics(segments)
 
             epoch_summary_loss = {
                 "train_loss": train_loss,
@@ -75,7 +75,7 @@ class BertCrfLayeredTrainer(BaseTrainer):
                 logger.info("** Validation improved, evaluating test data **")
                 test_preds, segments, valid_len, test_loss = self.eval(self.test_dataloader)
                 self.segments_to_file(segments, os.path.join(self.output_path, "predictions.txt"))
-                test_metrics = compute_single_label_metrics(segments)
+                test_metrics = compute_nested_metrics(segments)
 
                 epoch_summary_loss["test_loss"] = test_loss
                 epoch_summary_metrics["test_micro_f1"] = test_metrics.micro_f1
@@ -114,7 +114,7 @@ class BertCrfLayeredTrainer(BaseTrainer):
                     valid_len (B x 1) - int - valiud length of each sequence
                     logits (B x T x NUM_LABELS) - logits for each token and each tag
         """
-        for subwords, gold_tags, tokens, valid_len in dataloader:
+        for subwords, gold_tags, tokens, mask, valid_len in dataloader:
             self.model.train(is_train)
 
             if torch.cuda.is_available():
@@ -123,24 +123,22 @@ class BertCrfLayeredTrainer(BaseTrainer):
 
             if is_train:
                 self.optimizer.zero_grad()
-                loss = self.model(subwords, labels=gold_tags)
-                pred_tags = self.model(subwords)
+                preds, loss = self.model(subwords, labels=gold_tags, loss_fn=self.loss)
             else:
                 with torch.no_grad():
-                    loss = self.model(subwords, labels=gold_tags)
-                    pred_tags = self.model(subwords)
+                    preds, loss = self.model(subwords, labels=gold_tags, loss_fn=self.loss)
 
-            yield subwords, gold_tags, tokens, valid_len, loss, pred_tags
+            yield subwords, gold_tags, tokens, valid_len, preds, loss
 
     def eval(self, dataloader):
         golds, preds, segments, valid_lens = list(), list(), list(), list()
         loss = 0
 
-        for _, gold_tags, tokens, valid_len, batch_loss, pred_tags in self.tag(
+        for _, gold_tags, tokens, valid_len, batch_preds, batch_loss in self.tag(
             dataloader, is_train=False
         ):
-            loss += batch_loss.mean()
-            preds += pred_tags
+            loss += sum(l.item() for l in batch_loss)
+            preds += batch_preds
             segments += tokens
             valid_lens += list(valid_len)
 
@@ -149,15 +147,15 @@ class BertCrfLayeredTrainer(BaseTrainer):
         # Update segments, attach predicted tags to each token
         segments = self.to_segments(segments, preds, valid_lens, dataloader.dataset.vocab)
 
-        return preds, segments, valid_lens, loss.item()
+        return preds, segments, valid_lens, loss
 
     def infer(self, dataloader):
         golds, preds, segments, valid_lens = list(), list(), list(), list()
 
-        for _, gold_tags, tokens, valid_len, _, pred_tags in self.tag(
+        for _, gold_tags, tokens, valid_len, logits in self.tag(
             dataloader, is_train=False
         ):
-            preds += pred_tags
+            preds += torch.argmax(logits, dim=2).detach().cpu().numpy().tolist()
             segments += tokens
             valid_lens += list(valid_len)
 
@@ -173,18 +171,15 @@ class BertCrfLayeredTrainer(BaseTrainer):
 
         for segment, pred, valid_len in zip(segments, preds, valid_lens):
             tagged_segment = list()
+            # First, the token at 0th index [CLS] and token at nth index [SEP]
+            pred = pred[1:valid_len-1]
+            segment = segment[1:valid_len-1]
 
-            for depth_pred in pred:
-                # First, the token at 0th index [CLS] and token at nth index [SEP]
-                depth_pred = depth_pred[1:valid_len-1]
-                segment = segment[1:valid_len-1]
-
-                for i, token in enumerate(segment):
-                    if vocab.tokens.stoi[token.text] != unk_id:
-                        if token.pred_tag is None:
-                            token.pred_tag = list()
-                        token.pred_tag.append({"tag": vocab.tags.itos[depth_pred[i]]})
-                        tagged_segment.append(token)
+            for i, token in enumerate(segment):
+                if vocab.tokens.stoi[token.text] != unk_id:
+                    token.pred_tag = [{"tag": vocab.itos[tag_id]}
+                                      for tag_id, vocab in zip(pred[i, :].int().tolist(), vocab.tags[1:])]
+                    tagged_segment.append(token)
 
             tagged_segments.append(tagged_segment)
 

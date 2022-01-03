@@ -2,6 +2,7 @@ from torch.utils.data import DataLoader
 from torchtext.vocab import Vocab
 from collections import Counter, namedtuple
 import logging
+import re
 import itertools
 from arabiner.utils.helpers import load_object
 from arabiner.data.datasets import Token
@@ -57,8 +58,24 @@ def parse_conll_files(data_paths):
     tags = list(itertools.chain(*tags))
 
     # Generate vocabs for tags and tokens
-    vocabs = vocabs(tokens=Vocab(Counter(tokens)), tags=Vocab(Counter(tags)))
+    tag_vocabs = tag_vocab_by_type(tags)
+    tag_vocabs.insert(0, Vocab(Counter(tags)))
+    vocabs = vocabs(tokens=Vocab(Counter(tokens)), tags=tag_vocabs)
     return tuple(datasets), vocabs
+
+
+def tag_vocab_by_type(tags):
+    vocabs = list()
+    c = Counter(tags)
+    tag_names = c.keys()
+    tag_types = list(set([tag.split("-", 1)[1] for tag in tag_names if "-" in tag]))
+
+    for tag_type in tag_types:
+        r = re.compile(".*-" + tag_type)
+        t = list(filter(r.match, tags)) + ["O"]
+        vocabs.append(Vocab(Counter(t)))
+
+    return vocabs
 
 
 def text2segments(text):
@@ -74,7 +91,7 @@ def text2segments(text):
 
 
 def get_dataloaders(
-    datasets, vocab, data_config, batch_size=32, num_workers=0, shuffle=(True, True, False)
+    datasets, vocab, data_config, batch_size=32, num_workers=0, shuffle=(True, False, False)
 ):
     """
     From the datasets generate the dataloaders

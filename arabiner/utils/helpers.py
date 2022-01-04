@@ -82,7 +82,6 @@ def load_checkpoint(model_path):
     loss = load_object(train_config.loss["fn"], train_config.loss["kwargs"])
 
     # Load BERT tagger
-    train_config.network_config["kwargs"]["num_labels"] = len(tag_vocab)
     model = load_object(train_config.network_config["fn"], train_config.network_config["kwargs"])
     model = torch.nn.DataParallel(model)
 

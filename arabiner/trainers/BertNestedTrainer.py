@@ -15,24 +15,32 @@ class BertNestedTrainer(BaseTrainer):
     def train(self):
         best_val_loss, test_loss = np.inf, np.inf
         num_train_batch = len(self.train_dataloader)
+        num_labels = [len(v) for v in self.train_dataloader.dataset.vocab.tags[1:]]
 
         for epoch_index in range(self.max_epochs):
             self.current_epoch = epoch_index
             train_loss = 0
 
-            for batch_index, (_, _, _, _, _, batch_loss) in enumerate(self.tag(
+            for batch_index, (subwords, gold_tags, tokens, valid_len, logits) in enumerate(self.tag(
                 self.train_dataloader, is_train=True
             ), 1):
                 self.current_timestep += 1
-                torch.autograd.backward(batch_loss)
+
+                # Compute loses for each output
+                # logits = B x T x L x C
+                losses = [self.loss(logits[:, :, i, 0:l].view(-1, logits[:, :, i, 0:l].shape[-1]),
+                                    torch.reshape(gold_tags[:, i, :], (-1,)).long())
+                          for i, l in enumerate(num_labels)]
+
+                torch.autograd.backward(losses)
 
                 # Avoid exploding gradient by doing gradient clipping
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.clip)
 
                 self.optimizer.step()
                 self.scheduler.step()
-                bs = sum(l.item() for l in batch_loss)
-                train_loss += bs
+                batch_loss = sum(l.item() for l in losses)
+                train_loss += batch_loss
 
                 if self.current_timestep % self.log_interval == 0:
                     logger.info(
@@ -42,14 +50,14 @@ class BertNestedTrainer(BaseTrainer):
                         num_train_batch,
                         self.current_timestep,
                         self.optimizer.param_groups[0]['lr'],
-                        bs
+                        batch_loss
                     )
 
             train_loss /= num_train_batch
 
             logger.info("** Evaluating on validation dataset **")
             val_preds, segments, valid_len, val_loss = self.eval(self.val_dataloader)
-            val_metrics = compute_nested_metrics(segments)
+            val_metrics = compute_nested_metrics(segments, self.val_dataloader.dataset.transform.vocab.tags[1:])
 
             epoch_summary_loss = {
                 "train_loss": train_loss,
@@ -75,7 +83,7 @@ class BertNestedTrainer(BaseTrainer):
                 logger.info("** Validation improved, evaluating test data **")
                 test_preds, segments, valid_len, test_loss = self.eval(self.test_dataloader)
                 self.segments_to_file(segments, os.path.join(self.output_path, "predictions.txt"))
-                test_metrics = compute_nested_metrics(segments)
+                test_metrics = compute_nested_metrics(segments, self.test_dataloader.dataset.transform.vocab.tags[1:])
 
                 epoch_summary_loss["test_loss"] = test_loss
                 epoch_summary_metrics["test_micro_f1"] = test_metrics.micro_f1
@@ -123,22 +131,26 @@ class BertNestedTrainer(BaseTrainer):
 
             if is_train:
                 self.optimizer.zero_grad()
-                preds, loss = self.model(subwords, labels=gold_tags, loss_fn=self.loss)
+                logits = self.model(subwords)
             else:
                 with torch.no_grad():
-                    preds, loss = self.model(subwords, labels=gold_tags, loss_fn=self.loss)
+                    logits = self.model(subwords)
 
-            yield subwords, gold_tags, tokens, valid_len, preds, loss
+            yield subwords, gold_tags, tokens, valid_len, logits
 
     def eval(self, dataloader):
         golds, preds, segments, valid_lens = list(), list(), list(), list()
+        num_labels = [len(v) for v in dataloader.dataset.vocab.tags[1:]]
         loss = 0
 
-        for _, gold_tags, tokens, valid_len, batch_preds, batch_loss in self.tag(
+        for _, gold_tags, tokens, valid_len, logits in self.tag(
             dataloader, is_train=False
         ):
-            loss += sum(l.item() for l in batch_loss)
-            preds += batch_preds
+            losses = [self.loss(logits[:, :, i, 0:l].view(-1, logits[:, :, i, 0:l].shape[-1]),
+                                torch.reshape(gold_tags[:, i, :], (-1,)).long())
+                      for i, l in enumerate(num_labels)]
+            loss += sum(losses)
+            preds += torch.argmax(logits, dim=3)
             segments += tokens
             valid_lens += list(valid_len)
 
@@ -155,7 +167,7 @@ class BertNestedTrainer(BaseTrainer):
         for _, gold_tags, tokens, valid_len, logits in self.tag(
             dataloader, is_train=False
         ):
-            preds += torch.argmax(logits, dim=2).detach().cpu().numpy().tolist()
+            preds += torch.argmax(logits, dim=3)
             segments += tokens
             valid_lens += list(valid_len)
 

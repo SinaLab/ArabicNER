@@ -156,29 +156,30 @@ def main(args):
         os.path.join(args.output_path, "tensorboard")
     )
     os.environ["CUDA_VISIBLE_DEVICES"] = ",".join([str(gpu) for gpu in args.gpus])
-    args_file = os.path.join(args.output_path, "args.json")
-
-    with open(args_file, "w") as fh:
-        logger.info("Writing config to %s", args_file)
-        json.dump(args.__dict__, fh, indent=4)
 
     # Get the datasets and vocab for tags and tokens
     datasets, vocab = parse_conll_files((args.train_path, args.val_path, args.test_path))
 
+    if "Nested" in args.network_config["fn"]:
+        args.network_config["kwargs"]["num_labels"] = [len(v) for v in vocab.tags[1:]]
+    else:
+        args.network_config["kwargs"]["num_labels"] = len(vocab.tags[0])
+
     # Save tag vocab to desk
     with open(os.path.join(args.output_path, "tag_vocab.pkl"), "wb") as fh:
         pickle.dump(vocab.tags, fh)
+
+    # Write config to file
+    args_file = os.path.join(args.output_path, "args.json")
+    with open(args_file, "w") as fh:
+        logger.info("Writing config to %s", args_file)
+        json.dump(args.__dict__, fh, indent=4)
 
     # From the datasets generate the dataloaders
     args.data_config["kwargs"]["bert_model"] = args.network_config["kwargs"]["bert_model"]
     train_dataloader, val_dataloader, test_dataloader = get_dataloaders(
         datasets, vocab, args.data_config, args.batch_size, args.num_workers
     )
-
-    if "Nested" in args.network_config["fn"]:
-        args.network_config["kwargs"]["num_labels"] = [len(v) for v in vocab.tags[1:]]
-    else:
-        args.network_config["kwargs"]["num_labels"] = len(vocab.tags[0])
 
     model = load_object(args.network_config["fn"], args.network_config["kwargs"])
     model = torch.nn.DataParallel(model, device_ids=range(len(args.gpus)))

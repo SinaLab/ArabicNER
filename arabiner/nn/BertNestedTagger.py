@@ -7,21 +7,28 @@ class BertNestedTagger(BaseModel):
     def __init__(self, **kwargs):
         super(BertNestedTagger, self).__init__(**kwargs)
 
+        self.max_num_labels = max(self.num_labels)
         classifiers = [nn.Linear(768, num_labels) for num_labels in self.num_labels]
         self.classifiers = torch.nn.Sequential(*classifiers)
 
-    def forward(self, x, labels=None, loss_fn=None):
+    def forward(self, x):
         y = self.bert(x)
         y = self.dropout(y["last_hidden_state"])
-        preds = torch.empty((x.shape[0], x.shape[1], len(self.classifiers)))
-        losses = list()
+        output = list()
 
-        if labels is not None:
-            for i, classifier in enumerate(self.classifiers):
-                logits = classifier(y)
-                loss = loss_fn(logits.view(-1, logits.shape[-1]), torch.reshape(labels[:, i, :], (-1,)).long())
-                losses.append(loss)
-                preds[:, :, i] = torch.argmax(logits, dim=2)
+        for i, classifier in enumerate(self.classifiers):
+            logits = classifier(y)
 
-        return preds, losses
+            # Pad logits to allow Multi-GPU/DataParallel training to work
+            # We will truncate the padded dimensions when we compute the loss in the trainer
+            logits = torch.nn.ConstantPad1d((0, self.max_num_labels - logits.shape[-1]), 0)(logits)
+            output.append(logits)
+
+        # Return tensor of the shape B x T x L x C
+        # B: batch size
+        # T: sequence length
+        # L: number of tag types
+        # C: number of classes per tag type
+        output = torch.stack(output).permute((1, 2, 0, 3))
+        return output
 

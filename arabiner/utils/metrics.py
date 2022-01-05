@@ -29,7 +29,7 @@ def compute_nested_metrics(segments, vocabs):
         y += [[(list(filter(r.match, token.gold_tag)) or ["O"])[0] for token in segment] for segment in segments]
         y_hat += [[token.pred_tag[i]["tag"] for token in segment] for segment in segments]
 
-    logging.info("\n" + classification_report(y, y_hat, scheme=IOB2))
+    logging.info("\n" + classification_report(y, y_hat, scheme=IOB2, digits=4))
 
     metrics = {
         "micro_f1": f1_score(y, y_hat, average="micro", scheme=IOB2),

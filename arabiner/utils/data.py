@@ -68,7 +68,7 @@ def tag_vocab_by_type(tags):
     vocabs = list()
     c = Counter(tags)
     tag_names = c.keys()
-    tag_types = list(set([tag.split("-", 1)[1] for tag in tag_names if "-" in tag]))
+    tag_types = sorted(list(set([tag.split("-", 1)[1] for tag in tag_names if "-" in tag])))
 
     for tag_type in tag_types:
         r = re.compile(".*-" + tag_type)

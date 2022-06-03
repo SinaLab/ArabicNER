@@ -1,7 +1,27 @@
 ArabiNER
 ======================
-Arabic language tagger for named entity recognition.
+Arabic language tagger for nested named entity recognition.
 
+About the Corpus and the model
+--------
+A corpus and model for nested Arabic Named Entity Recognition
+Version: 1.0 (updated on 20/1/2022)
+
+Wojood consists of about 550K tokens (MSA and dialect) that are manually annotated with 21 entity types (e.g., person, organization, location, event, date, etc). It covers multiple domains and was annotated with nested entities. The corpus contains about 75K entities and 22.5% of which are nested. A nested named entity recognition (NER) model based on BERT was trained (F1-score 88.4%). Try the service:
+Corpus size: 550K tokens (MSA and dialects)
+Richness: 21 entity classes, contains ~75K entities and 22.5% of them are nested entities
+Domains: Media, History, Culture, Health, Finance, ICT, Law, Elections, Politics, Migration, Terrorism, social media
+IAA: 97.9% (Cohen's Kappa)
+NER Model: AraBERTV2 (88.4% F1-score)
+Entity Classes (21):
+PERS (person)	                  EVENT	    CARDINAL
+NORP (group of people)	          DATE	    ORDINAL
+OCC (occupation)	              TIME	    PERCENT
+ORG (organization)	              LANGUAGE	QUANTITY
+GPE (geopolitical entity)	      WEBSITE	UNIT
+LOC (geographical location)	      LAW	    MONEY
+FAC (facility: landmarks places)  PRODUCT	CURR (currency)
+Please email Prof. Jarrar (mjarrar AT birzeit.edu) for the annotation guidelines
 
 Requirements
 --------

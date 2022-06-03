@@ -111,4 +111,11 @@ Features
 
 Credits
 -------
+This research is partially funded by the Palestinian Higher Council for Innovation and Excellence.
+
+Citation
+-------
+
+Mustafa Jarrar, Mohammed Khalilia, Sana Ghanem: Wojood: Nested Arabic Named Entity Corpus and Recognition using BERT. In Proceedings of the International Conference on Language Resources and Evaluation (LREC 2022), Marseille, France. 2022
+http://www.jarrar.info/publications/JKG22.pdf 
 

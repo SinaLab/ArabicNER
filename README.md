@@ -29,6 +29,8 @@ https://ontology.birzeit.edu/Wojood/
 
 Download Corpus
 -------- 
+The Wojood NER corpus is available to download upon request for academic and commercial use.
+Request to download Wojood (Corpus, Code, BERT Model)
 https://ontology.birzeit.edu/Wojood/
 
 

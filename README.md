@@ -27,7 +27,7 @@ Requirements
 --------
 Clone this repo
 
-    git clone https://github.com/mohammedkhalilia/ArabiNER.git
+    git clone https://github.com/SinaLab/ArabicNER.git
 
 This package has dependencies on multiple Python packages. It is recommended to Conda to create a new environment 
 that mimics the same environment the model was trained in. Provided in this repo `environment.yml` from which you 

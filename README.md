@@ -23,6 +23,15 @@ LOC (geographical location)	      LAW	    MONEY
 FAC (facility: landmarks places)  PRODUCT	CURR (currency)
 Please email Prof. Jarrar (mjarrar AT birzeit.edu) for the annotation guidelines
 
+Online Demo
+--------
+https://ontology.birzeit.edu/Wojood/
+
+Download Corpus
+-------- 
+https://ontology.birzeit.edu/Wojood/
+
+
 Requirements
 --------
 Clone this repo

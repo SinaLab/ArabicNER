@@ -1,4 +1,4 @@
-ArabiNER
+Wojood Arabic NER
 ======================
 Arabic language tagger for nested named entity recognition.
 

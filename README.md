@@ -1,15 +1,15 @@
-Wojood Arabic NER
+Wojood - Nested Arabic NER
 ======================
 Wojood is a corpus for Arabic nested Named Entity Recognition (NER). Nested entities occur 
-when one entity mention is embedded inside another entity mention. Wojood consists 
-of about 550K Modern Standard Arabic (MSA) and dialect tokens that are manually 
-annotated with 21 entity types including person, organization, location, event 
-and date. More importantly, the corpus is annotated with nested entities instead 
-of the more common flat annotations. The data contains about 75K entities and 22.5% of 
-which are nested. The inter-annotator evaluation of the corpus demonstrated a strong 
-agreement with Cohen's Kappa of 0.979 and an F1-score of 0.976. To validate our data, 
-we used the corpus to train a nested NER model based on multi-task learning 
-and AraBERT (Arabic BERT). This repo contains the source-code to train Wojood nested NER.
+when one entity mention is embedded inside another entity mention. 550K tokens (MSA and dialect)
+This repo contains the source-code to train Wojood nested NER.
+
+Online Demo
+--------
+You can try our model using the demo link below
+
+https://ontology.birzeit.edu/Wojood/
+
 
 Wojood Corpus
 --------
@@ -44,11 +44,6 @@ NER Model: AraBERTV2 (88.4% F1-score)
 
 Please email Prof. Jarrar (mjarrar AT birzeit.edu) for the annotation guidelines
 
-Online Demo
---------
-You can try our model using the demo link below
-
-https://ontology.birzeit.edu/Wojood/
 
 Corpus Download
 --------

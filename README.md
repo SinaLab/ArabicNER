@@ -55,6 +55,8 @@ https://ontology.birzeit.edu/Wojood/
 
 Requirements
 --------
+At this point, the code is compatible with `Python 3.9` and `torchtext==0.9.0`.
+
 Clone this repo
 
     git clone https://github.com/SinaLab/ArabicNER.git
@@ -69,9 +71,100 @@ Update your PYTHONPATH to point to ArabiNER package
 
     export PYTHONPATH=PYTHONPATH:/path/to/ArabiNER
 
+Model Training
+--------
+Argument for model traning are listed below. Note that some arguments including `data_config`, 
+`trainer_config`, `network_config`, `optimizer`, `lr_scheduler` and `loss` take as input JSON 
+configuration (see examples below).
+
+    usage: train.py [-h] --output_path OUTPUT_PATH --train_path TRAIN_PATH
+        --val_path VAL_PATH --test_path TEST_PATH
+        [--bert_model BERT_MODEL] [--gpus GPUS [GPUS ...]]
+        [--log_interval LOG_INTERVAL] [--batch_size BATCH_SIZE]
+        [--num_workers NUM_WORKERS] [--data_config DATA_CONFIG]
+        [--trainer_config TRAINER_CONFIG]
+        [--network_config NETWORK_CONFIG] [--optimizer OPTIMIZER]
+        [--lr_scheduler LR_SCHEDULER] [--loss LOSS] [--overwrite]
+        [--seed SEED]
+    
+    optional arguments:
+        -h, --help            show this help message and exit
+        --output_path OUTPUT_PATH
+            Output path (default: None)
+        --train_path TRAIN_PATH
+            Path to training data (default: None)
+        --val_path VAL_PATH   
+            Path to training data (default: None)
+        --test_path TEST_PATH
+            Path to training data (default: None)
+        --bert_model BERT_MODEL
+            BERT model (default: aubmindlab/bert-base-arabertv2)
+        --gpus GPUS [GPUS ...]
+            GPU IDs to train on (default: [0])
+        --log_interval LOG_INTERVAL
+            Log results every that many timesteps (default: 10)
+        --batch_size BATCH_SIZE
+            Batch size (default: 32)
+        --num_workers NUM_WORKERS
+            Dataloader number of workers (default: 0)
+        --data_config DATA_CONFIG
+            Dataset configurations (default: {"fn":
+                "arabiner.data.datasets.DefaultDataset", "kwargs":
+                {"max_seq_len": 512}})
+        --trainer_config TRAINER_CONFIG
+            Trainer configurations (default: {"fn":
+            "arabiner.trainers.BertTrainer", "kwargs":
+            {"max_epochs": 50}})
+        --network_config NETWORK_CONFIG
+            Network configurations (default: {"fn":
+            "arabiner.nn.BertSeqTagger", "kwargs": {"dropout":
+            0.1, "bert_model": "aubmindlab/bert-base-arabertv2"}})
+        --optimizer OPTIMIZER
+            Optimizer configurations (default: {"fn":
+            "torch.optim.AdamW", "kwargs": {"lr": 0.0001}})
+        --lr_scheduler LR_SCHEDULER
+            Learning rate scheduler configurations (default:
+                {"fn": "torch.optim.lr_scheduler.ExponentialLR",
+                "kwargs": {"gamma": 1}})
+        --loss LOSS           Loss function configurations (default: {"fn":
+            "torch.nn.CrossEntropyLoss", "kwargs": {}})
+        --overwrite           Overwrite output directory (default: False)
+        --seed SEED           Seed for random initialization (default: 1)
+
+
+#### Training nested NER example
+In the case of nested NER we pass `NestedTagsDataset` to `--data_config`, `BertNestedTrainer` to `--trainer_config`,
+and `BertNestedTagger` to `--network_config`.
+
+    python train.py \
+        --output_path /path/to/output/dir \
+        --train_path /path/to/train.txt \
+        --val_path /path/to/val.txt \
+        --test_path /path/to/test.txt \
+        --batch_size 8 \
+        --data_config '{"fn":"arabiner.data.datasets.NestedTagsDataset","kwargs":{"max_seq_len":512}}' \
+        --trainer_config '{"fn":"arabiner.trainers.BertNestedTrainer","kwargs":{"max_epochs":50}}' \
+        --network_config '{"fn":"arabiner.nn.BertNestedTagger","kwargs":{"dropout":0.1,"bert_model":"aubmindlab/bert-base-arabertv2"}}' \
+        --optimizer '{"fn":"torch.optim.AdamW","kwargs":{"lr":0.0001}}'
+
+#### Training flat NER example
+In the case of flat NER we pass `DefaultDataset` to `--data_config`, `BertTrainer` to `--trainer_config`,
+and `BertSeqTagger` to `--network_config`.
+
+    python train.py \
+        --output_path /path/to/output/dir \
+        --train_path /path/to/train.txt \
+        --val_path /path/to/val.txt \
+        --test_path /path/to/test.txt \
+        --batch_size 8 \
+        --data_config '{"fn":"arabiner.data.datasets.DefaultDataset","kwargs":{"max_seq_len":512}}' \
+        --trainer_config '{"fn":"arabiner.trainers.BertTrainer","kwargs":{"max_epochs":50}}' \
+        --network_config '{"fn":"arabiner.nn.BertSeqTagger","kwargs":{"dropout":0.1,"bert_model":"aubmindlab/bert-base-arabertv2"}}' \
+        --optimizer '{"fn":"torch.optim.AdamW","kwargs":{"lr":0.0001}}'
+
 Inference
 --------
-Inference is the process of used a pre-trained model to perform tagging on a new text. To do that, we will 
+Inference is the process of using a pre-trained model to perform tagging on a new text. To do that, we will 
 need the following:
 
 #### Model
@@ -106,6 +199,24 @@ Example inference command:
     python -u /path/to/ArabiNER/arabiner/bin/infer.py
            --model_path /path/to/model
            --text "وثائق نفوس شخصية من الفترة العثمانية للسيد نعمان عقل"
+
+#### Eval script
+Optionally, there is `eval.py` script in `bin` directory to evaluate NER dataset with ground truth data.
+
+    usage: eval.py [-h] --output_path OUTPUT_PATH --model_path MODEL_PATH
+                    --data_paths DATA_PATHS [DATA_PATHS ...] [--batch_size BATCH_SIZE]
+    
+    optional arguments:
+        -h, --help            show this help message and exit
+        --output_path OUTPUT_PATH
+            Path to save results (default: None)
+        --model_path MODEL_PATH
+            Model path (default: None)
+        --data_paths DATA_PATHS [DATA_PATHS ...]
+            Text or sequence to tag, this is in same format as
+            training data with 'O' tag for all tokens (default: None)
+        --batch_size BATCH_SIZE
+            Batch size (default: 32)
 
 Credits
 -------

@@ -1,4 +1,3 @@
 from arabiner.trainers.BaseTrainer import BaseTrainer
-from arabiner.trainers.BertCrfTrainer import BertCrfTrainer
-from arabiner.trainers.BertMultiLabelTrainer import BertMultiLabelTrainer
+from arabiner.trainers.BertTrainer import BertTrainer
 from arabiner.trainers.BertNestedTrainer import BertNestedTrainer

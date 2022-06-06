@@ -149,7 +149,7 @@ class BertTrainer(BaseTrainer):
 
             for i, token in enumerate(segment):
                 if vocab.tokens.stoi[token.text] != unk_id:
-                    token.pred_tag = [{"tag": vocab.tags.itos[pred[i]]}]
+                    token.pred_tag = [{"tag": vocab.tags[0].itos[pred[i]]}]
                     tagged_segment.append(token)
 
             tagged_segments.append(tagged_segment)

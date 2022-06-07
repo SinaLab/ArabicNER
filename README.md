@@ -53,6 +53,10 @@ Wojood (corpus and the model).
 
 https://ontology.birzeit.edu/Wojood/
 
+Model Download
+--------
+huggingface: https://huggingface.co/SinaLab/ArabicNER-Wojood
+
 Requirements
 --------
 At this point, the code is compatible with `Python 3.9` and `torchtext==0.9.0`.

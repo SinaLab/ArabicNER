@@ -179,7 +179,7 @@ class BertNestedTrainer(BaseTrainer):
             vocab = self.vocab
 
         tagged_segments = list()
-        unk_id = vocab.tokens.stoi["UNK"]
+        unk_id = vocab.tokens.get_stoi()["UNK"]
 
         for segment, pred, valid_len in zip(segments, preds, valid_lens):
             tagged_segment = list()
@@ -188,8 +188,8 @@ class BertNestedTrainer(BaseTrainer):
             segment = segment[1:valid_len-1]
 
             for i, token in enumerate(segment):
-                if vocab.tokens.stoi[token.text] != unk_id:
-                    token.pred_tag = [{"tag": vocab.itos[tag_id]}
+                if vocab.tokens.get_stoi()[token.text] != unk_id:
+                    token.pred_tag = [{"tag": vocab.get_itos()[tag_id]}
                                       for tag_id, vocab in zip(pred[i, :].int().tolist(), vocab.tags[1:])]
                     tagged_segment.append(token)
 

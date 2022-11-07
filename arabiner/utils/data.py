@@ -1,5 +1,5 @@
 from torch.utils.data import DataLoader
-from torchtext.vocab import Vocab
+from torchtext.vocab import vocab
 from collections import Counter, namedtuple
 import logging
 import re
@@ -59,8 +59,8 @@ def parse_conll_files(data_paths):
 
     # Generate vocabs for tags and tokens
     tag_vocabs = tag_vocab_by_type(tags)
-    tag_vocabs.insert(0, Vocab(Counter(tags)))
-    vocabs = vocabs(tokens=Vocab(Counter(tokens)), tags=tag_vocabs)
+    tag_vocabs.insert(0, vocab(Counter(tags)))
+    vocabs = vocabs(tokens=vocab(Counter(tokens), specials=["UNK"]), tags=tag_vocabs)
     return tuple(datasets), vocabs
 
 
@@ -73,7 +73,7 @@ def tag_vocab_by_type(tags):
     for tag_type in tag_types:
         r = re.compile(".*-" + tag_type)
         t = list(filter(r.match, tags)) + ["O"]
-        vocabs.append(Vocab(Counter(t)))
+        vocabs.append(vocab(Counter(t), specials=["<pad>"]))
 
     return vocabs
 
@@ -85,9 +85,9 @@ def text2segments(text):
     dataset = [[Token(text=token, gold_tag=["O"]) for token in text.split()]]
     tokens = [token.text for segment in dataset for token in segment]
 
-    # Generate vocabs for tags and tokens
-    vocab = Vocab(Counter(tokens))
-    return dataset, vocab
+    # Generate vocabs for the tokens
+    segment_vocab = vocab(Counter(tokens), specials=["UNK"])
+    return dataset, segment_vocab
 
 
 def get_dataloaders(
@@ -96,7 +96,6 @@ def get_dataloaders(
     """
     From the datasets generate the dataloaders
     :param datasets: list - list of the datasets, list of list of segments and tokens
-    :param transform: torchvision.transforms.Compose
     :param batch_size: int
     :param num_workers: int
     :param shuffle: boolean - to shuffle the data or not

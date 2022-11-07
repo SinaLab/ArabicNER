@@ -27,7 +27,7 @@ class BertSeqTransform:
         for token in segment:
             token_subwords = self.encoder(token.text)[1:-1]
             subwords += token_subwords
-            tags += [self.vocab.tags[0].stoi[token.gold_tag[0]]] + [self.vocab.tags[0].stoi["O"]] * (len(token_subwords) - 1)
+            tags += [self.vocab.tags[0].get_stoi()[token.gold_tag[0]]] + [self.vocab.tags[0].get_stoi()["O"]] * (len(token_subwords) - 1)
             tokens += [token] + [unk_token] * (len(token_subwords) - 1)
 
         # Truncate to max_seq_len
@@ -41,8 +41,8 @@ class BertSeqTransform:
         subwords.insert(0, self.tokenizer.cls_token_id)
         subwords.append(self.tokenizer.sep_token_id)
 
-        tags.insert(0, self.vocab.tags[0].stoi["O"])
-        tags.append(self.vocab.tags[0].stoi["O"])
+        tags.insert(0, self.vocab.tags[0].get_stoi()["O"])
+        tags.append(self.vocab.tags[0].get_stoi()["O"])
 
         tokens.insert(0, unk_token)
         tokens.append(unk_token)
@@ -81,7 +81,7 @@ class NestedTagsTransform:
         #       [O,     O,     O,      O,      O, O, B-GPE]
         #   ]
         for vocab in self.vocab.tags[1:]:
-            vocab_tags = "|".join([t for t in vocab.itos if "-" in t])
+            vocab_tags = "|".join([t for t in vocab.get_itos() if "-" in t])
             r = re.compile(vocab_tags)
 
             # This is really messy
@@ -92,7 +92,7 @@ class NestedTagsTransform:
                                 or ["O"])[0]] + ["O"] * (len(token.subwords) - 1)
                                 for token in segment]
             single_type_tags = list(itertools.chain(*single_type_tags))
-            tags.append([vocab.stoi[tag] for tag in single_type_tags])
+            tags.append([vocab.get_stoi()[tag] for tag in single_type_tags])
 
         # Truncate to max_seq_len
         if len(subwords) > self.max_seq_len - 2:
@@ -114,9 +114,9 @@ class NestedTagsTransform:
         # Add "O" tags for the first and last subwords
         tags = torch.Tensor(tags)
         tags = torch.column_stack((
-            torch.Tensor([vocab.stoi["O"] for vocab in self.vocab.tags[1:]]),
+            torch.Tensor([vocab.get_stoi()["O"] for vocab in self.vocab.tags[1:]]),
             tags,
-            torch.Tensor([vocab.stoi["O"] for vocab in self.vocab.tags[1:]]),
+            torch.Tensor([vocab.get_stoi()["O"] for vocab in self.vocab.tags[1:]]),
         )).unsqueeze(0)
 
         mask = torch.ones_like(tags)

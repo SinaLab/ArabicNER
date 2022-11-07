@@ -23,7 +23,7 @@ def compute_nested_metrics(segments, vocabs):
     y, y_hat = list(), list()
 
     for i, vocab in enumerate(vocabs):
-        vocab_tags = [tag for tag in vocab.itos if "-" in tag]
+        vocab_tags = [tag for tag in vocab.get_itos() if "-" in tag]
         r = re.compile("|".join(vocab_tags))
 
         y += [[(list(filter(r.match, token.gold_tag)) or ["O"])[0] for token in segment] for segment in segments]

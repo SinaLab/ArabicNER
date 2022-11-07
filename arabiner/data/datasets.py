@@ -87,7 +87,7 @@ class DefaultDataset(Dataset):
         # tags are padding with the index of the O tag
         subwords = pad_sequence(subwords, batch_first=True, padding_value=0)
         tags = pad_sequence(
-            tags, batch_first=True, padding_value=self.vocab.tags[0].stoi["O"]
+            tags, batch_first=True, padding_value=self.vocab.tags[0].get_stoi()["O"]
         )
         return subwords, tags, tokens, valid_len
 
@@ -139,7 +139,7 @@ class NestedTagsDataset(Dataset):
         masks = torch.cat(masks)
 
         # Pad the tags, do the padding for each tag type
-        tags = [torch.nn.ConstantPad1d((0, subwords.shape[-1] - tag.shape[-1]), vocab.stoi["<pad>"])(tag)
+        tags = [torch.nn.ConstantPad1d((0, subwords.shape[-1] - tag.shape[-1]), vocab.get_stoi()["<pad>"])(tag)
                 for tag, vocab in zip(tags, self.vocab.tags[1:])]
         tags = torch.cat(tags)
 

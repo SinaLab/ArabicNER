@@ -59,7 +59,7 @@ huggingface: https://huggingface.co/SinaLab/ArabicNER-Wojood
 
 Requirements
 --------
-At this point, the code is compatible with `Python 3.9` and `torchtext==0.9.0`.
+At this point, the code is compatible with `Python 3.10.6` and `torchtext==0.14.0`.
 
 Clone this repo
 
@@ -71,9 +71,9 @@ can create a new conda environment using the command below.
 
     conda env create -f environment.yml
 
-Update your PYTHONPATH to point to ArabiNER package
+Update your PYTHONPATH to point to ArabicNER package
 
-    export PYTHONPATH=PYTHONPATH:/path/to/ArabiNER
+    export PYTHONPATH=PYTHONPATH:/path/to/ArabicNER
 
 Model Training
 --------

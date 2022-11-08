@@ -179,20 +179,23 @@ class BertNestedTrainer(BaseTrainer):
             vocab = self.vocab
 
         tagged_segments = list()
-        unk_id = vocab.tokens.get_stoi()["UNK"]
+        tokens_stoi = vocab.tokens.get_stoi()
+        unk_id = tokens_stoi["UNK"]
 
         for segment, pred, valid_len in zip(segments, preds, valid_lens):
-            tagged_segment = list()
             # First, the token at 0th index [CLS] and token at nth index [SEP]
-            pred = pred[1:valid_len-1]
-            segment = segment[1:valid_len-1]
+            # Combine the tokens with their corresponding predictions
+            segment_pred = zip(segment[1:valid_len-1], pred[1:valid_len-1])
 
-            for i, token in enumerate(segment):
-                if vocab.tokens.get_stoi()[token.text] != unk_id:
-                    token.pred_tag = [{"tag": vocab.get_itos()[tag_id]}
-                                      for tag_id, vocab in zip(pred[i, :].int().tolist(), vocab.tags[1:])]
-                    tagged_segment.append(token)
+            # Ignore the sub-tokens/subwords, which are identified with text being UNK
+            segment_pred = list(filter(lambda t: tokens_stoi[t[0].text] != unk_id, segment_pred))
 
+            # Attach the predicted tags to each token
+            list(map(lambda t: setattr(t[0], 'pred_tag', [{"tag": vocab.get_itos()[tag_id]}
+                                                     for tag_id, vocab in zip(t[1].int().tolist(), vocab.tags[1:])]), segment_pred))
+
+            # We are only interested in the tagged tokens, we do no longer need raw model predictions
+            tagged_segment = [t for t, _ in segment_pred]
             tagged_segments.append(tagged_segment)
 
         return tagged_segments

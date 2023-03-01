@@ -4,7 +4,7 @@ import argparse
 from collections import namedtuple
 from arabiner.utils.helpers import load_checkpoint, make_output_dirs, logging_config
 from arabiner.utils.data import get_dataloaders, parse_conll_files
-from arabiner.utils.metrics import compute_single_label_metrics, compute_multi_label_metrics, compute_nested_metrics
+from arabiner.utils.metrics import compute_single_label_metrics, compute_nested_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -79,8 +79,6 @@ def main(args):
 
         if "Nested" in train_config.trainer_config["fn"]:
             compute_nested_metrics(segments, vocab.tags[1:])
-        elif "Multi" in train_config.trainer_config["fn"]:
-            compute_multi_label_metrics(segments)
         else:
             compute_single_label_metrics(segments)
 

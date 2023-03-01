@@ -7,7 +7,6 @@ from seqeval.metrics import (
 )
 from seqeval.scheme import IOB2
 from types import SimpleNamespace
-import numpy as np
 import logging
 import re
 
@@ -16,12 +15,16 @@ logger = logging.getLogger(__name__)
 
 def compute_nested_metrics(segments, vocabs):
     """
-    Compute metrics for multi-class, single label dataset
+    Compute metrics for nested NER
     :param segments: List[List[arabiner.data.dataset.Token]] - list of segments
     :return: metrics - SimpleNamespace - F1/micro/macro/weights, recall, precision, accuracy
     """
     y, y_hat = list(), list()
 
+    # We duplicate the dataset N times, where N is the number of entity types
+    # For each copy, we create y and y_hat
+    # Example: first copy, will create pairs of ground truth and predicted labels for entity type GPE
+    #          another copy will create pairs for LOC, etc.
     for i, vocab in enumerate(vocabs):
         vocab_tags = [tag for tag in vocab.get_itos() if "-" in tag]
         r = re.compile("|".join(vocab_tags))
@@ -43,61 +46,9 @@ def compute_nested_metrics(segments, vocabs):
     return SimpleNamespace(**metrics)
 
 
-def compute_multi_label_metrics(segments):
-    """
-    Compute metrics for multi-class, multi-label dataset
-    :param segments: List[List[arabiner.data.dataset.Token]] - list of segments
-    :return: metrics - SimpleNamespace - F1/micro/macro/weights, recall, precision, accuracy
-                       the metrics are averaged across number of labels
-    """
-    max_tags = max(len(token.gold_tag) for segment in segments for token in segment)
-    y = [[] for _ in range(max_tags)]
-    y_hat = [[] for _ in range(max_tags)]
-    label_metrics = []
-
-    for i in range(max_tags):
-        for tokens in segments:
-            segment_gold = []
-            segment_pred = []
-
-            for token in tokens:
-                preds = [t["tag"] for t in token.pred_tag]
-                truth = [t for t in token.gold_tag]
-                truth += ["O"] * (max_tags - len(truth))
-
-                segment_gold.append(truth[i])
-                segment_pred.append(truth[i] if truth[i] in preds else "O")
-
-            y[i].append(segment_gold)
-            y_hat[i].append(segment_pred)
-
-        logging.info("Classification report for entity at position %d", i)
-        logging.info("\n" + classification_report(y[i], y_hat[i], scheme=IOB2))
-
-        label_metrics.append(
-            {
-                "micro_f1": f1_score(y[i], y_hat[i], average="micro", scheme=IOB2),
-                "macro_f1": f1_score(y[i], y_hat[i], average="macro", scheme=IOB2),
-                "weights_f1": f1_score(y[i], y_hat[i], average="weighted", scheme=IOB2),
-                "precision": precision_score(y[i], y_hat[i], scheme=IOB2),
-                "recall": recall_score(y[i], y_hat[i], scheme=IOB2),
-                "accuracy": accuracy_score(y[i], y_hat[i]),
-            }
-        )
-
-    # Average metrics across all labels
-    metrics = {
-        k: np.mean([m[k] for m in label_metrics]) for k in label_metrics[0].keys()
-    }
-
-    metrics = SimpleNamespace(**metrics)
-
-    return metrics
-
-
 def compute_single_label_metrics(segments):
     """
-    Compute metrics for multi-class, single label dataset
+    Compute metrics for flat NER
     :param segments: List[List[arabiner.data.dataset.Token]] - list of segments
     :return: metrics - SimpleNamespace - F1/micro/macro/weights, recall, precision, accuracy
     """

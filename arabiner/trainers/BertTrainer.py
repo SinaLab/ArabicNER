@@ -15,6 +15,7 @@ class BertTrainer(BaseTrainer):
     def train(self):
         best_val_loss, test_loss = np.inf, np.inf
         num_train_batch = len(self.train_dataloader)
+        patience = self.patience
 
         for epoch_index in range(self.max_epochs):
             self.current_epoch = epoch_index
@@ -71,6 +72,7 @@ class BertTrainer(BaseTrainer):
             )
 
             if val_loss < best_val_loss:
+                patience = self.patience
                 best_val_loss = val_loss
                 logger.info("** Validation improved, evaluating test data **")
                 test_preds, segments, valid_len, test_loss = self.eval(self.test_dataloader)
@@ -92,10 +94,10 @@ class BertTrainer(BaseTrainer):
 
                 self.save()
             else:
-                self.patience -= 1
+                patience -= 1
 
             # No improvements, terminating early
-            if self.patience == 0:
+            if patience == 0:
                 logger.info("Early termination triggered")
                 break
 

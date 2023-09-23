@@ -25,7 +25,9 @@ class BertSeqTransform:
         unk_token = arabiner.data.datasets.Token(text="UNK")
 
         for token in segment:
-            token_subwords = self.encoder(token.text)[1:-1]
+            # Sometimes the tokenizer fails to encode the word and return no input_ids, in that case, we use
+            # the input_id for [UNK]
+            token_subwords = self.encoder(token.text)[1:-1] or self.encoder("[UNK]")[1:-1]
             subwords += token_subwords
             tags += [self.vocab.tags[0].get_stoi()[token.gold_tag[0]]] + [self.vocab.tags[0].get_stoi()["O"]] * (len(token_subwords) - 1)
             tokens += [token] + [unk_token] * (len(token_subwords) - 1)
@@ -67,9 +69,11 @@ class NestedTagsTransform:
 
         # Encode each token and get its subwords and IDs
         for token in segment:
-            token.subwords = self.encoder(token.text)[1:-1]
+            # Sometimes the tokenizer fails to encode the word and return no input_ids, in that case, we use
+            # the input_id for [UNK]
+            token.subwords = self.encoder(token.text)[1:-1] or self.encoder("[UNK]")[1:-1]
             subwords += token.subwords
-            tokens += [token] + [unk_token] * (len(token.subwords ) - 1)
+            tokens += [token] + [unk_token] * (len(token.subwords) - 1)
 
         # Construct the labels for each tag type
         # The sequence will have a list of tags for each type

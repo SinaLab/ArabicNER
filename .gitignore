@@ -105,3 +105,4 @@ cmd.sh
 .vscode/
 
 .idea
+.DS_Store

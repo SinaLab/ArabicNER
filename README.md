@@ -114,7 +114,8 @@ configuration (see examples below).
         --data_config DATA_CONFIG
             Dataset configurations (default: {"fn":
                 "arabiner.data.datasets.DefaultDataset", "kwargs":
-                {"max_seq_len": 512, "bert_model":"aubmindlab/bert-base-arabertv2"}})
+                {"max_seq_len": 512, 
+                "bert_model": "aubmindlab/bert-base-arabertv2"}})
         --trainer_config TRAINER_CONFIG
             Trainer configurations (default: {"fn":
             "arabiner.trainers.BertTrainer", "kwargs":

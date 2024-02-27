@@ -1,4 +1,4 @@
-Wojood - Nested Arabic NER
+Wojood - Arabic Fine-Grained Entity Recognition
 ======================
 Wojood is a corpus for Arabic nested Named Entity Recognition (NER). Nested entities occur 
 when one entity mention is embedded inside another entity mention. 550K tokens (MSA and dialect)
@@ -11,9 +11,9 @@ You can try our model using the demo link below
 https://ontology.birzeit.edu/Wojood/
 
 
-Wojood Corpus
+Wojood Arabic Fine-Grained Corpus
 --------
-A corpus and model for nested Arabic Named Entity Recognition
+A corpus and model for nested and flat Arabic Named Entity Recognition
 Version: 1.0 (updated on 20/1/2022)
 
 Wojood consists of about 550K tokens (MSA and dialect) that are manually 

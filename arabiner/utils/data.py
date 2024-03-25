@@ -71,7 +71,7 @@ def tag_vocab_by_type(tags):
     tag_types = sorted(list(set([tag.split("-", 1)[1] for tag in tag_names if "-" in tag])))
 
     for tag_type in tag_types:
-        r = re.compile(".*-" + tag_type)
+        r = re.compile(".*-" + tag_type + "$")
         t = list(filter(r.match, tags)) + ["O"]
         vocabs.append(vocab(Counter(t), specials=["<pad>"]))
 

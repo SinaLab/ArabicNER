@@ -85,7 +85,7 @@ class NestedTagsTransform:
         #       [O,     O,     O,      O,      O, O, B-GPE]
         #   ]
         for vocab in self.vocab.tags[1:]:
-            vocab_tags = "|".join([t for t in vocab.get_itos() if "-" in t])
+            vocab_tags = "|".join(["^" + t + "$" for t in vocab.get_itos() if "-" in t])
             r = re.compile(vocab_tags)
 
             # This is really messy

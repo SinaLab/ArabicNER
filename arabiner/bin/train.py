@@ -165,6 +165,8 @@ def main(args):
     else:
         args.network_config["kwargs"]["num_labels"] = len(vocab.tags[0])
 
+    args.data_config["kwargs"]["bert_model"] = args.network_config["kwargs"]["bert_model"]
+
     # Save tag vocab to desk
     with open(os.path.join(args.output_path, "tag_vocab.pkl"), "wb") as fh:
         pickle.dump(vocab.tags, fh)
@@ -176,7 +178,6 @@ def main(args):
         json.dump(args.__dict__, fh, indent=4)
 
     # From the datasets generate the dataloaders
-    args.data_config["kwargs"]["bert_model"] = args.network_config["kwargs"]["bert_model"]
     train_dataloader, val_dataloader, test_dataloader = get_dataloaders(
         datasets, vocab, args.data_config, args.batch_size, args.num_workers
     )

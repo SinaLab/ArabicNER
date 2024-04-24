@@ -8,7 +8,7 @@ Online Demo
 --------
 You can try our model using the demo link below
 
-https://ontology.birzeit.edu/Wojood/
+https://sina.birzeit.edu/wojood/
 
 
 Wojood Corpus

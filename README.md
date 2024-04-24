@@ -114,7 +114,8 @@ configuration (see examples below).
         --data_config DATA_CONFIG
             Dataset configurations (default: {"fn":
                 "arabiner.data.datasets.DefaultDataset", "kwargs":
-                {"max_seq_len": 512}})
+                {"max_seq_len": 512, 
+                "bert_model": "aubmindlab/bert-base-arabertv2"}})
         --trainer_config TRAINER_CONFIG
             Trainer configurations (default: {"fn":
             "arabiner.trainers.BertTrainer", "kwargs":
@@ -146,7 +147,7 @@ and `BertNestedTagger` to `--network_config`.
         --val_path /path/to/val.txt \
         --test_path /path/to/test.txt \
         --batch_size 8 \
-        --data_config '{"fn":"arabiner.data.datasets.NestedTagsDataset","kwargs":{"max_seq_len":512}}' \
+        --data_config '{"fn":"arabiner.data.datasets.NestedTagsDataset","kwargs":{"max_seq_len":512,"bert_model":"aubmindlab/bert-base-arabertv2"}}' \
         --trainer_config '{"fn":"arabiner.trainers.BertNestedTrainer","kwargs":{"max_epochs":50}}' \
         --network_config '{"fn":"arabiner.nn.BertNestedTagger","kwargs":{"dropout":0.1,"bert_model":"aubmindlab/bert-base-arabertv2"}}' \
         --optimizer '{"fn":"torch.optim.AdamW","kwargs":{"lr":0.0001}}'
@@ -161,7 +162,7 @@ and `BertSeqTagger` to `--network_config`.
         --val_path /path/to/val.txt \
         --test_path /path/to/test.txt \
         --batch_size 8 \
-        --data_config '{"fn":"arabiner.data.datasets.DefaultDataset","kwargs":{"max_seq_len":512}}' \
+        --data_config '{"fn":"arabiner.data.datasets.DefaultDataset","kwargs":{"max_seq_len":512,"bert_model":"aubmindlab/bert-base-arabertv2"}}' \
         --trainer_config '{"fn":"arabiner.trainers.BertTrainer","kwargs":{"max_epochs":50}}' \
         --network_config '{"fn":"arabiner.nn.BertSeqTagger","kwargs":{"dropout":0.1,"bert_model":"aubmindlab/bert-base-arabertv2"}}' \
         --optimizer '{"fn":"torch.optim.AdamW","kwargs":{"lr":0.0001}}'

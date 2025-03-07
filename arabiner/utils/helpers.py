@@ -67,7 +67,7 @@ def load_checkpoint(model_path):
     Load model given the model path
     :param model_path: str - path to model
     :return: tagger - arabiner.trainers.BaseTrainer - the tagger model
-             vocab - torchtext.vocab.Vocab - indexed tags
+             vocab - arabicner.utils.data.Vocab - indexed tags
              train_config - argparse.Namespace - training configurations
     """
     with open(os.path.join(model_path, "tag_vocab.pkl"), "rb") as fh:

@@ -143,7 +143,7 @@ class NestedTagsDataset(Dataset):
         masks = torch.cat(masks)
 
         # Pad the tags, do the padding for each tag type
-        tags = [torch.nn.ConstantPad1d((0, subwords.shape[-1] - tag.shape[-1]), vocab.get_stoi()["<pad>"])(tag)
+        tags = [torch.nn.ConstantPad1d((0, subwords.shape[-1] - tag.shape[-1]), vocab.get_stoi()["O"])(tag)
                 for tag, vocab in zip(tags, self.vocab.tags[1:])]
         tags = torch.cat(tags)
 

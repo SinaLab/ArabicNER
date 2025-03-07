@@ -113,5 +113,5 @@ class BaseTrainer:
         logger.info("Loading checkpoint %s", checkpoint_path)
 
         device = None if torch.cuda.is_available() else torch.device('cpu')
-        checkpoint = torch.load(checkpoint_path, map_location=device)
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
         self.model.load_state_dict(checkpoint["model"])

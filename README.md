@@ -14,7 +14,7 @@ https://sina.birzeit.edu/wojood/
 Wojood Corpus
 --------
 A corpus and model for nested and flat Arabic Named Entity Recognition
-Version: 1.0 (updated on 20/1/2022)
+Version: 1.0 (updated on 10/3/2025)
 
 Wojood consists of about 550K tokens (MSA and dialect) that are manually 
 annotated with 21 entity types (e.g., person, organization, location, event, date, etc). 
@@ -51,15 +51,15 @@ A sample data is available in the `data` directory. But the entire Wojood NER co
 available to download upon request for academic and commercial use. Request to download 
 Wojood (corpus and the model).
 
-https://ontology.birzeit.edu/Wojood/
+[https://sina.birzeit.edu/wojood/](https://sina.birzeit.edu/wojood/)
 
 Model Download
 --------
-huggingface: https://huggingface.co/SinaLab/ArabicNER-Wojood
+huggingface: [https://huggingface.co/SinaLab/ArabicNER-Wojood](https://huggingface.co/SinaLab/ArabicNER-Wojood)
 
 Requirements
 --------
-At this point, the code is compatible with `Python 3.10.6` and `torchtext==0.14.0`.
+At this point, the code is compatible with `Python 3.11.11`.
 
 Clone this repo
 

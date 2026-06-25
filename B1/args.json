@@ -1,0 +1,76 @@
+{
+    "output_path": "/rep/nhamad/ArabicNER/B1",
+    "train_path": "/rep/nhamad/ArabicNER/data/train.txt",
+    "val_path": "/rep/nhamad/ArabicNER/data/val.txt",
+    "test_path": "/rep/nhamad/ArabicNER/data/test.txt",
+    "bert_model": "aubmindlab/bert-base-arabertv2",
+    "gpus": [
+        0
+    ],
+    "log_interval": 10,
+    "batch_size": 8,
+    "num_workers": 0,
+    "data_config": {
+        "fn": "arabiner.data.datasets.NestedTagsDataset",
+        "kwargs": {
+            "max_seq_len": 512,
+            "bert_model": "aubmindlab/bert-base-arabertv2"
+        }
+    },
+    "trainer_config": {
+        "fn": "arabiner.trainers.BertNestedTrainer",
+        "kwargs": {
+            "max_epochs": 50
+        }
+    },
+    "network_config": {
+        "fn": "arabiner.nn.BertNestedTagger",
+        "kwargs": {
+            "dropout": 0.1,
+            "bert_model": "aubmindlab/bert-base-arabertv2",
+            "num_labels": [
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3,
+                3
+            ]
+        }
+    },
+    "optimizer": {
+        "fn": "torch.optim.AdamW",
+        "kwargs": {
+            "lr": 1e-05
+        }
+    },
+    "lr_scheduler": {
+        "fn": "torch.optim.lr_scheduler.ExponentialLR",
+        "kwargs": {
+            "gamma": 1
+        }
+    },
+    "loss": {
+        "fn": "torch.nn.CrossEntropyLoss",
+        "kwargs": {}
+    },
+    "overwrite": false,
+    "seed": 1
+}

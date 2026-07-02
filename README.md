@@ -227,11 +227,11 @@ Optionally, there is `eval.py` script in `bin` directory to evaluate NER dataset
 
 A ready-to-run Colab notebook is available. Click the badge below to open it directly:
 
-[![Open In Colab][([https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ZRRdWUaX_bNSiJ_61gV-Cp4oscdN_Lpn])]
+[[![Open In Colab][([https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ZRRdWUaX_bNSiJ_61gV-Cp4oscdN_Lpn])]](https://colab.research.google.com/gist/mohammedkhalilia/a4d83d4e43682d1efcdf299d41beb3da/train_nested_arabic_ner.ipynb)
 
 Evaluation Nested NER:
 
-[![Open In Colab] [([https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ZRRdWUaX_bNSiJ_61gV-Cp4oscdN_Lpn])]
+[[![Open In Colab] [([https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ZRRdWUaX_bNSiJ_61gV-Cp4oscdN_Lpn])]](https://colab.research.google.com/gist/mohammedkhalilia/9134510aa2684464f57de7934c97138b/eval_nested_arabic_ner.ipynb)
 
 
 Credits

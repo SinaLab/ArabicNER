@@ -223,6 +223,17 @@ Optionally, there is `eval.py` script in `bin` directory to evaluate NER dataset
         --batch_size BATCH_SIZE
             Batch size (default: 32)
 
+### Google Colab
+
+A ready-to-run Colab notebook is available. Click the badge below to open it directly:
+
+[![Open In Colab][([https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ZRRdWUaX_bNSiJ_61gV-Cp4oscdN_Lpn])]
+
+Evaluation Nested NER:
+
+[![Open In Colab] [([https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ZRRdWUaX_bNSiJ_61gV-Cp4oscdN_Lpn])]
+
+
 Credits
 -------
 This research is partially funded by the Palestinian Higher Council for Innovation and Excellence.
